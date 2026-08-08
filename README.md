@@ -43,75 +43,99 @@ git --version
 
 ---
 
-## Configuración del entorno
+## 1. Configuración del entorno
 
-1. Instala Python en una versión compatible con el proyecto.
-2. Crea y activa un entorno virtual desde la raíz del repositorio:
+### 1.1 Crear el entorno virtual
+
+Desde la raíz del repositorio, cree un entorno virtual de Python:
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
+```
+
+> Dependiendo de la instalación o del sistema operativo, el comando de Python puede estar disponible como `python3` en lugar de `python`.
+
+### 1.2 Activar el entorno virtual
+
+**macOS / Linux:**
+
+```bash
 source .venv/bin/activate
 ```
 
-3. Instala las dependencias:
+**Windows - PowerShell:**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**Windows - CMD:**
+
+```cmd
+.venv\Scripts\activate.bat
+```
+
+Una vez activado correctamente, la terminal debería mostrar `(.venv)` al inicio de la línea.
+
+### 1.3 Instalar las dependencias
+
+Con el entorno virtual activo:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Como el paquete Django del proyecto vive dentro de `main/python/cr/ac/una/alimentaCR`, exporta esa ruta al `PYTHONPATH` antes de ejecutar comandos de Django:
+> La configuración de Django se encuentra en `main/python/cr/ac/una/alimentaCR/config`. El archivo `manage.py` configura automáticamente la ruta necesaria para localizar los módulos del proyecto, por lo que no es necesario configurar manualmente `PYTHONPATH`.
 
-```bash
-export PYTHONPATH="$PWD/main/python/cr/ac/una/alimentaCR"
-```
+### 1.4 Base de datos
 
-5. El proyecto usa SQLite para desarrollo local. La base de datos se crea en `db.sqlite3` al ejecutar las migraciones.
-
-## Cómo levantarlo
-
-Desde la raíz del repositorio y con el entorno virtual activo:
-
-```bash
-export PYTHONPATH="$PWD/main/python/cr/ac/una/alimentaCR"
-python manage.py migrate
-python manage.py runserver
-```
-
-Si quieres validar primero que todo esté correcto, puedes correr:
-
-```bash
-export PYTHONPATH="$PWD/main/python/cr/ac/una/alimentaCR"
-python manage.py check
-```
-
-La aplicación quedará disponible en:
-
-```bash
-http://127.0.0.1:8000/
-```
+El proyecto utilizará **PostgreSQL** como base de datos relacional. La configuración definitiva de la conexión y las migraciones correspondientes se incorporarán conforme avance el desarrollo del proyecto.
 
 ---
 
-## Cómo verificar que funciona
+## 2. Cómo levantar el proyecto
 
-Primero puede verificar la configuración general del proyecto con:
+Desde la raíz del repositorio y con el entorno virtual activo, primero verifique que la configuración de Django sea correcta:
 
 ```bash
 python manage.py check
 ```
 
-Si el proyecto se encuentra correctamente configurado, Django mostrará:
+La respuesta esperada es:
 
 ```text
 System check identified no issues (0 silenced).
 ```
 
-Una vez disponible el endpoint de verificación de salud, también podrá comprobarse mediante:
+Luego, inicie el servidor de desarrollo:
+
+```bash
+python manage.py runserver
+```
+
+La aplicación quedará disponible por defecto en:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Para detener el servidor utilice `Ctrl + C`.
+
+---
+
+## 3. Cómo verificar que funciona
+
+Con el servidor en ejecución, acceda desde el navegador a:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Cuando se incorpore el endpoint de verificación de salud, también podrá comprobarse el estado de la aplicación mediante:
 
 ```bash
 curl http://127.0.0.1:8000/api/health/
 ```
-
 ---
 
 ## Otros comandos
