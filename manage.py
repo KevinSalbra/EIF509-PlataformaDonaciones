@@ -6,7 +6,15 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    source_dir = os.path.join(base_dir, "main", "python")
+
+    sys.path.insert(0, source_dir)
+
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE",
+        "cr.ac.una.alimentaCR.config.settings"
+    )
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
