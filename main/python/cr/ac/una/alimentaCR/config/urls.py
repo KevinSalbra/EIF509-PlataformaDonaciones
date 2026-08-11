@@ -17,6 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from cr.ac.una.alimentaCR.presentation.views import VistaSalud
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/salud', VistaSalud.as_view(), name='salud'),
 ]

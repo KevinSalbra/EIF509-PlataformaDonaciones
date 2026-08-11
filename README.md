@@ -133,10 +133,21 @@ http://127.0.0.1:8000/
 
 Cuando se incorpore el endpoint de verificación de salud, también podrá comprobarse el estado de la aplicación mediante:
 
+Abra **dos terminales** desde la raíz del repositorio, con el entorno virtual activo.
+
+**Terminal 1 — iniciar el servidor:**
+
 ```bash
-curl http://127.0.0.1:8000/api/health/
+python manage.py runserver 8080
 ```
----
+
+**Terminal 2 — probar el endpoint de salud:**
+
+```bash
+curl http://localhost:8080/api/salud
+```
+
+Si la aplicación está corriendo correctamente, este comando debe devolver una respuesta JSON confirmando que el servicio está activo.
 
 ## Otros comandos
 
