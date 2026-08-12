@@ -295,3 +295,7 @@ El sistema no incluirá pagos ni pasarelas de pago, facturación electrónica, a
 La definición de este dominio representa el alcance previsto de AlimentaCR para el curso y podrá evolucionar de forma incremental conforme se desarrollen los laboratorios. Cualquier funcionalidad adicional deberá respetar las entidades, reglas y responsabilidades establecidas en este documento y mantenerse dentro de un alcance viable para el equipo.
 
 Las funcionalidades que no forman parte del flujo principal —publicar una donación, solicitarla, asignarla y completar su entrega— deberán evaluarse antes de incorporarse para evitar aumentar innecesariamente la complejidad del sistema.
+
+## 9. Arquitectura del sistema
+
+![Diagrama de arquitectura](arquitectura/diagrama-arquitectura.png)
