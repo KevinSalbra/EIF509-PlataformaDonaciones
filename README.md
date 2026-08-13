@@ -110,13 +110,13 @@ System check identified no issues (0 silenced).
 Luego, inicie el servidor de desarrollo:
 
 ```bash
-python manage.py runserver
+python manage.py runserver 8080
 ```
 
 La aplicación quedará disponible por defecto en:
 
 ```text
-http://127.0.0.1:8000/
+http://localhost:8080/api/salud
 ```
 
 Para detener el servidor utilice `Ctrl + C`.
@@ -124,12 +124,6 @@ Para detener el servidor utilice `Ctrl + C`.
 ---
 
 ## 3. Cómo verificar que funciona
-
-Con el servidor en ejecución, acceda desde el navegador a:
-
-```text
-http://127.0.0.1:8000/
-```
 
 Cuando se incorpore el endpoint de verificación de salud, también podrá comprobarse el estado de la aplicación mediante:
 
