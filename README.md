@@ -27,7 +27,7 @@ El detalle del dominio, sus entidades, procesos, reglas de negocio y alcance se 
 
 ## Requisitos
 
-- Python 3
+- Python 3.9
 - pip
 - Git
 - PostgreSQL
@@ -53,7 +53,10 @@ Desde la raíz del repositorio, cree un entorno virtual de Python:
 python -m venv .venv
 ```
 
-> Dependiendo de la instalación o del sistema operativo, el comando de Python puede estar disponible como `python3` en lugar de `python`.
+> Dependiendo de la instalación o del sistema operativo, la instalacion de Python puede estar disponible por medio de la terminal o de instalador en linea:
+
+MAC con Brew: brew install python@3.9
+Windows: https://www.python.org/downloads/release/python-3913/
 
 ### 1.2 Activar el entorno virtual
 
