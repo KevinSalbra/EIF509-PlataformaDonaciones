@@ -1,4 +1,4 @@
-Database Markup lenguage del diagrama SQL de la base de datos, se brinda para que cualquiera que tenga acceso a este documento puedo replicar el diagrama.
+Database Markup lenguage (DBML) del diagrama SQL de la base de datos, se brinda para que cualquiera que tenga acceso a este documento puedo replicar el diagrama.
 
 recomendacion: https://dbdiagram.io/home
 
