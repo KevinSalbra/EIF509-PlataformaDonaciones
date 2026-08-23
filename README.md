@@ -8,8 +8,9 @@ Proyecto del curso **EIF509 Desarrollo de Aplicaciones Basadas en Web**, Univers
 
 ## Equipo
 
-| Kevin Salazar Bravo 
-| Kimberley Gómez Quesada 
+| Kevin Salazar Bravo
+
+| Kimberley Gómez Quesada
 
 ---
 
@@ -28,10 +29,16 @@ El detalle del dominio, sus entidades, procesos, reglas de negocio y alcance se 
 ## Requisitos
 
 - Python 3.9
-- pip
-- Git
-- PostgreSQL
 
+- pip
+
+- Git
+
+- Docker Desktop, que incluye Docker Compose
+
+- PostgreSQL 18.6, provisto mediante Docker y sin necesidad de instalación local
+
+- Flyway 13.3.0, provisto mediante Docker y sin necesidad de instalación local
 
 Verifique las versiones instaladas:
 
@@ -39,6 +46,8 @@ Verifique las versiones instaladas:
 python --version
 pip --version
 git --version
+docker --version
+docker compose version
 ```
 
 ---
@@ -56,7 +65,8 @@ python -m venv .venv
 > Dependiendo de la instalación o del sistema operativo, la instalacion de Python puede estar disponible por medio de la terminal o de instalador en linea:
 
 MAC con Brew: brew install python@3.9
-Windows: https://www.python.org/downloads/release/python-3913/
+
+Windows: [https://www.python.org/downloads/release/python-3913/](https://www.python.org/downloads/release/python-3913/)
 
 ### 1.2 Activar el entorno virtual
 
@@ -90,15 +100,169 @@ pip install -r requirements.txt
 
 > La configuración de Django se encuentra en `main/python/cr/ac/una/alimentaCR/config`. El archivo `manage.py` configura automáticamente la ruta necesaria para localizar los módulos del proyecto, por lo que no es necesario configurar manualmente `PYTHONPATH`.
 
+> PostgreSQL, Flyway y Docker no se agregan a `requirements.txt`, porque no son dependencias de Python. PostgreSQL y Flyway se obtienen mediante las imágenes definidas en `docker-compose.yml`.
+
 ### 1.4 Base de datos
 
-El proyecto utilizará **PostgreSQL** como base de datos relacional. La configuración definitiva de la conexión y las migraciones correspondientes se incorporarán conforme avance el desarrollo del proyecto.
+El proyecto utiliza **PostgreSQL** como base de datos relacional. El esquema se administra mediante migraciones versionadas con **Flyway**, y ambos servicios se ejecutan con Docker Compose.
+
+No es necesario instalar PostgreSQL ni Flyway directamente en el sistema operativo. Para ejecutar la capa de datos únicamente se requiere Docker Desktop.
+
+#### 1.4.1 Configurar las variables de entorno
+
+El repositorio incluye el archivo `.env.example` con las variables requeridas.
+
+En macOS o Linux:
+
+```bash
+cp .env.example .env
+```
+
+En Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+El archivo `.env` debe contener:
+
+```env
+POSTGRES_DB=alimentacr
+POSTGRES_USER=alimentacr_user
+POSTGRES_PASSWORD=cambiar_contrasena
+POSTGRES_PORT=5433
+```
+
+El archivo `.env` contiene configuración local y no debe agregarse al repositorio.
+
+#### 1.4.2 Validar Docker Compose
+
+Desde la raíz del repositorio, valide la configuración:
+
+```bash
+docker compose config
+```
+
+Si el comando no presenta errores, la configuración es válida.
+
+#### 1.4.3 Levantar PostgreSQL
+
+Ejecute:
+
+```bash
+docker compose up -d postgres
+```
+
+La primera ejecución descargará la imagen de PostgreSQL y creará el volumen necesario para conservar los datos.
+
+Compruebe el estado del contenedor:
+
+```bash
+docker compose ps
+```
+
+El contenedor `alimentacr-postgres` debe aparecer con estado `healthy` antes de ejecutar las migraciones.
+
+#### 1.4.4 Ejecutar las migraciones
+
+Para aplicar todas las migraciones pendientes:
+
+```bash
+docker compose run --rm flyway migrate
+```
+
+Flyway ejecuta los archivos ubicados en:
+
+```text
+database/migrations/
+```
+
+Los nombres de las migraciones deben utilizar la siguiente convención:
+
+```text
+V<numero>__<descripcion>.sql
+```
+
+Por ejemplo:
+
+```text
+V1__crear_esquema_relacional.sql
+V2__insertar_datos_iniciales.sql
+```
+
+La letra `V` debe escribirse en mayúscula y deben utilizarse dos guiones bajos antes de la descripción.
+
+#### 1.4.5 Consultar el estado de las migraciones
+
+```bash
+docker compose run --rm flyway info
+```
+
+Las migraciones aplicadas correctamente aparecen con estado `Success`. Las migraciones disponibles que todavía no se han ejecutado aparecen con estado `Pending`.
+
+Flyway crea automáticamente la tabla `flyway_schema_history` para registrar las migraciones aplicadas. Esta tabla no debe modificarse manualmente.
+
+#### 1.4.6 Conectarse mediante un cliente gráfico
+
+Opcionalmente, puede utilizarse Postico, pgAdmin, DBeaver u otro cliente compatible con PostgreSQL.
+
+Los datos de conexión son:
+
+```text
+Host: localhost
+Puerto: 5433
+Base de datos: alimentacr
+Usuario: alimentacr_user
+Contraseña: valor definido en POSTGRES_PASSWORD
+```
+
+El puerto externo puede modificarse mediante `POSTGRES_PORT` en `.env`.
+
+Flyway se conecta internamente mediante `postgres:5432`. Este puerto interno no debe reemplazarse por el puerto externo utilizado desde el sistema operativo.
+
+#### 1.4.7 Detener los servicios
+
+Para detener los contenedores sin eliminar los datos:
+
+```bash
+docker compose stop
+```
+
+Para detener y eliminar los contenedores conservando el volumen de PostgreSQL:
+
+```bash
+docker compose down
+```
+
+#### 1.4.8 Reconstruir la base de datos
+
+El siguiente comando elimina los contenedores y los volúmenes de la base de datos:
+
+```bash
+docker compose down -v
+```
+
+> **Advertencia:** este comando elimina todos los datos almacenados en PostgreSQL. Debe utilizarse únicamente cuando se necesite reconstruir la base desde cero.
+
+Después puede reconstruirse ejecutando:
+
+```bash
+docker compose up -d postgres
+docker compose run --rm flyway migrate
+```
 
 ---
 
 ## 2. Cómo levantar el proyecto
 
-Desde la raíz del repositorio y con el entorno virtual activo, primero verifique que la configuración de Django sea correcta:
+Desde la raíz del repositorio, primero levante PostgreSQL y aplique las migraciones pendientes:
+
+```bash
+docker compose up -d postgres
+docker compose run --rm flyway migrate
+```
+
+Con el entorno virtual activo, verifique que la configuración de Django sea correcta:
 
 ```bash
 python manage.py check
@@ -156,6 +320,17 @@ Si la aplicación está corriendo correctamente, este comando debe devolver una 
 | `python manage.py makemigrations` | Genera nuevas migraciones |
 | `pytest` | Ejecuta las pruebas automatizadas |
 | `pip install -r requirements.txt` | Instala las dependencias del proyecto |
+| `docker compose config` | Valida la configuración de Docker Compose |
+| `docker compose up -d postgres` | Levanta PostgreSQL en segundo plano |
+| `docker compose run --rm flyway migrate` | Aplica las migraciones pendientes de Flyway |
+| `docker compose run --rm flyway info` | Muestra el estado de las migraciones de Flyway |
+| `docker compose ps` | Muestra el estado de los contenedores |
+| `docker compose logs postgres` | Muestra los registros de PostgreSQL |
+| `docker compose stop` | Detiene los contenedores sin eliminarlos |
+| `docker compose down` | Elimina los contenedores y conserva los volúmenes |
+| `docker compose down -v` | Elimina los contenedores y los datos almacenados en los volúmenes |
+
+> El esquema relacional de AlimentaCR se administra mediante Flyway. Los comandos de migración de Django se conservan para los componentes propios del framework cuando correspondan, pero las tablas del dominio se crean mediante los archivos SQL de `database/migrations/`.
 
 ---
 
@@ -165,6 +340,11 @@ El código de producción se encuentra bajo el paquete `main/python/cr/ac/una/al
 
 ```text
 EIF509-PlataformaDonaciones/
+
+├── database/
+│   └── migrations/
+│       └── V1__crear_esquema_relacional.sql
+│
 ├── docs/
 │   ├── adr/
 │   └── Propuesta-Dominio.md
@@ -180,6 +360,8 @@ EIF509-PlataformaDonaciones/
 │   └── test/
 │       └── cr/ac/una/alimentaCR/
 │
+├── .env.example
+├── docker-compose.yml
 ├── manage.py
 ├── requirements.txt
 ├── README.md
@@ -206,9 +388,13 @@ La capa de presentación puede utilizar la capa de negocio y la capa de negocio 
 ### Reglas de las capas
 
 1. La capa `presentation` no accede directamente a los repositorios.
+
 2. Las reglas y validaciones propias del dominio pertenecen a `business`.
+
 3. La capa `business` no debe depender de componentes HTTP o de presentación.
+
 4. El acceso y persistencia de información corresponde a `data`.
+
 5. Las operaciones transaccionales que involucren reglas de negocio se coordinan desde `business`.
 
 ---
@@ -219,8 +405,11 @@ Las pruebas automatizadas se encuentran separadas del código de producción:
 
 ```text
 main/test/cr/ac/una/alimentaCR/
+
 ├── presentation/
+
 ├── business/
+
 └── data/
 ```
 
@@ -270,8 +459,11 @@ La documentación del proyecto se encuentra en:
 
 ```text
 docs/
+
 ├── Propuesta-Dominio.md
+
 └── adr/
+
     └── ADR-001-seleccion-stack-backend.md
 ```
 
@@ -287,8 +479,11 @@ Los ADR registran las decisiones arquitectónicas importantes tomadas durante la
 
 ```text
 main       versión estable del proyecto
+
 develop    integración de cambios
+
 feature/*  desarrollo de funcionalidades
+
 fix/*      corrección de errores
 ```
 
@@ -298,8 +493,11 @@ Ejemplos:
 
 ```text
 feature/publicar-donacion
+
 feature/solicitar-donacion
+
 feature/gestion-organizaciones
+
 fix/validacion-fecha-donacion
 ```
 
@@ -309,10 +507,15 @@ Se utilizarán prefijos para identificar el propósito de cada cambio:
 
 ```text
 feat:      nueva funcionalidad
+
 fix:       corrección de errores
+
 test:      creación o modificación de pruebas
+
 docs:      cambios de documentación
+
 refactor:  reorganización del código sin cambiar comportamiento
+
 chore:     configuración o mantenimiento
 ```
 
@@ -320,9 +523,13 @@ Ejemplos:
 
 ```text
 feat: agregar servicio para publicar donaciones
+
 test: agregar pruebas de validación de solicitudes
+
 docs: documentar alcance del dominio
+
 refactor: separar acceso a datos de lógica de negocio
+
 chore: configurar dependencias iniciales de Django
 ```
 
@@ -336,10 +543,15 @@ Ejemplos:
 
 ```text
 donacion
+
 solicitud
+
 organizacion
+
 DonationSerializer
+
 SolicitudService
+
 DonacionRepository
 ```
 
