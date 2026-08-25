@@ -60,6 +60,7 @@ services:
 
     volumes:
       - mongodb_data:/data/db
+      - ./database/mongodb/init:/docker-entrypoint-initdb.d
 
 volumes:
   postgres_data:
