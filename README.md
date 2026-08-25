@@ -40,6 +40,8 @@ El detalle del dominio, sus entidades, procesos, reglas de negocio y alcance se 
 
 - Flyway 13.3.0, provisto mediante Docker y sin necesidad de instalación local
 
+- MongoDB 8.0, provisto mediante Docker y sin necesidad de instalación local
+
 Verifique las versiones instaladas:
 
 ```bash
@@ -102,7 +104,7 @@ pip install -r requirements.txt
 
 > PostgreSQL, Flyway y Docker no se agregan a `requirements.txt`, porque no son dependencias de Python. PostgreSQL y Flyway se obtienen mediante las imágenes definidas en `docker-compose.yml`.
 
-### 1.4 Base de datos
+### 1.4 Base de datos relacional (PostgreSQL)
 
 El proyecto utiliza **PostgreSQL** como base de datos relacional. El esquema se administra mediante migraciones versionadas con **Flyway**, y ambos servicios se ejecutan con Docker Compose.
 
@@ -242,7 +244,7 @@ El siguiente comando elimina los contenedores y los volúmenes de la base de dat
 docker compose down -v
 ```
 
-> **Advertencia:** este comando elimina todos los datos almacenados en PostgreSQL. Debe utilizarse únicamente cuando se necesite reconstruir la base desde cero.
+> **Advertencia:** este comando elimina todos los datos almacenados en PostgreSQL y en MongoDB, ya que ambos servicios comparten el mismo `docker-compose.yml`. Debe utilizarse únicamente cuando se necesite reconstruir la base desde cero.
 
 Después puede reconstruirse ejecutando:
 
@@ -251,15 +253,98 @@ docker compose up -d postgres
 docker compose run --rm flyway migrate
 ```
 
+### 1.5 Base de datos documental (MongoDB)
+
+El proyecto utiliza **MongoDB** para la bitácora de eventos del sistema, siguiendo un enfoque de persistencia políglota: PostgreSQL almacena el estado actual de las entidades del dominio, mientras que MongoDB almacena el historial de acciones ocurridas sobre ellas.
+
+No es necesario instalar MongoDB directamente en el sistema operativo. Al igual que PostgreSQL, se ejecuta mediante Docker Compose.
+
+La justificación de diseño de este subdominio (qué se incrusta, qué se referencia, y por qué) se encuentra en [`docs/modelo-datos/modelo-mongodb.md`](docs/modelo-datos/modelo-mongodb.md).
+
+#### 1.5.1 Configurar las variables de entorno
+
+El archivo `.env` (creado en la sección 1.4.1 a partir de `.env.example`) debe incluir también las variables de MongoDB:
+
+```env
+MONGO_DATABASE=alimentacr_bitacora
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=cambiar_contrasena
+MONGO_PORT=27017
+```
+
+#### 1.5.2 Levantar MongoDB
+
+Ejecute:
+
+```bash
+docker compose up -d mongodb
+```
+
+La primera ejecución descargará la imagen de MongoDB, creará el volumen necesario para conservar los datos, y ejecutará automáticamente los scripts de inicialización ubicados en `database/mongodb/init/`, que crean la colección `eventos`, sus índices y los datos de ejemplo.
+
+Compruebe el estado del contenedor:
+
+```bash
+docker compose ps
+```
+
+El contenedor `alimentacr-mongodb` debe aparecer en ejecución.
+
+> Los scripts de inicialización solo se ejecutan la primera vez que se crea el volumen de datos. Si el volumen ya existe, no se vuelven a ejecutar automáticamente (ver sección 1.5.5).
+
+#### 1.5.3 Verificar la inicialización
+
+Conéctese al contenedor mediante `mongosh`:
+
+```bash
+docker exec -it alimentacr-mongodb mongosh -u admin -p --authenticationDatabase admin
+```
+
+Dentro de `mongosh`:
+
+```javascript
+use alimentacr_bitacora
+show collections
+db.eventos.countDocuments()
+db.eventos.getIndexes()
+```
+
+Debe verse la colección `eventos`, los documentos de ejemplo cargados, y los índices `idx_fecha_hora`, `idx_usuario_id`, `idx_entidad_entidad_id` e `idx_tipo_evento`.
+
+#### 1.5.4 Detener los servicios
+
+Para detener el contenedor sin eliminar los datos:
+
+```bash
+docker compose stop mongodb
+```
+
+#### 1.5.5 Reconstruir la base de datos
+
+Para volver a ejecutar los scripts de inicialización (por ejemplo, tras modificarlos), es necesario eliminar el volumen de datos:
+
+```bash
+docker compose down -v
+docker compose up -d mongodb
+```
+
+> **Advertencia:** al igual que en la sección 1.4.8, este comando elimina también los datos de PostgreSQL, ya que `-v` afecta a todos los volúmenes del proyecto.
+
 ---
 
 ## 2. Cómo levantar el proyecto
 
-Desde la raíz del repositorio, primero levante PostgreSQL y aplique las migraciones pendientes:
+Desde la raíz del repositorio, primero levante PostgreSQL y MongoDB, y aplique las migraciones pendientes:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres mongodb
 docker compose run --rm flyway migrate
+```
+
+También puede levantar ambas bases de datos con un solo comando:
+
+```bash
+docker compose up -d
 ```
 
 Con el entorno virtual activo, verifique que la configuración de Django sea correcta:
@@ -321,11 +406,15 @@ Si la aplicación está corriendo correctamente, este comando debe devolver una 
 | `pytest` | Ejecuta las pruebas automatizadas |
 | `pip install -r requirements.txt` | Instala las dependencias del proyecto |
 | `docker compose config` | Valida la configuración de Docker Compose |
-| `docker compose up -d postgres` | Levanta PostgreSQL en segundo plano |
+| `docker compose up -d` | Levanta PostgreSQL y MongoDB en segundo plano |
+| `docker compose up -d postgres` | Levanta solo PostgreSQL en segundo plano |
+| `docker compose up -d mongodb` | Levanta solo MongoDB en segundo plano |
 | `docker compose run --rm flyway migrate` | Aplica las migraciones pendientes de Flyway |
 | `docker compose run --rm flyway info` | Muestra el estado de las migraciones de Flyway |
+| `docker exec -it alimentacr-mongodb mongosh -u admin -p` | Conecta a MongoDB mediante `mongosh` |
 | `docker compose ps` | Muestra el estado de los contenedores |
 | `docker compose logs postgres` | Muestra los registros de PostgreSQL |
+| `docker compose logs mongodb` | Muestra los registros de MongoDB |
 | `docker compose stop` | Detiene los contenedores sin eliminarlos |
 | `docker compose down` | Elimina los contenedores y conserva los volúmenes |
 | `docker compose down -v` | Elimina los contenedores y los datos almacenados en los volúmenes |
@@ -342,11 +431,21 @@ El código de producción se encuentra bajo el paquete `main/python/cr/ac/una/al
 EIF509-PlataformaDonaciones/
 
 ├── database/
-│   └── migrations/
-│       └── V1__crear_esquema_relacional.sql
+│   ├── migrations/
+│   │   └── V1__crear_esquema_relacional.sql
+│   └── mongodb/
+│       ├── init/
+│       │   ├── 01_init.js
+│       │   └── 02_seed.js
+│       └── seeds/
+│           └── eventos.json
 │
 ├── docs/
 │   ├── adr/
+│   ├── arquitectura/
+│   ├── modelo-datos/
+│   │   ├── modelo-relacional.md
+│   │   └── modelo-mongodb.md
 │   └── Propuesta-Dominio.md
 │
 ├── main/
@@ -437,7 +536,7 @@ pytest
 | Frontend | React |
 | Integración continua | GitHub Actions |
 
-> MongoDB y React serán incorporados cuando correspondan según la evolución y los laboratorios del curso.
+> React será incorporado cuando corresponda según la evolución y los laboratorios del curso.
 
 ---
 
@@ -462,14 +561,26 @@ docs/
 
 ├── Propuesta-Dominio.md
 
-└── adr/
+├── adr/
 
-    └── ADR-001-seleccion-stack-backend.md
+│   └── ADR-001-seleccion-stack-backend.md
+
+├── arquitectura/
+
+│   └── diagrama-arquitectura.png
+
+└── modelo-datos/
+
+    ├── modelo-relacional.md
+
+    └── modelo-mongodb.md
 ```
 
 La propuesta de dominio contiene la descripción del negocio, actores, entidades, relaciones, procesos, reglas y alcance del sistema.
 
 Los ADR registran las decisiones arquitectónicas importantes tomadas durante la evolución del proyecto.
+
+El modelo de datos documenta el diseño de ambas bases de datos: el esquema relacional en PostgreSQL y el subdominio documental en MongoDB, incluyendo la justificación de las decisiones de diseño.
 
 ---
 
