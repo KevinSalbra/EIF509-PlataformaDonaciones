@@ -547,6 +547,7 @@ Las decisiones arquitectónicas relevantes del proyecto se documentan mediante *
 | ADR | Decisión | Estado |
 | --- | --- | --- |
 | [ADR-001](docs/adr/ADR-001-seleccion-stack-backend.md) | Python y Django REST Framework como stack backend | Aceptada |
+| [ADR-002](docs/adr/ADR-002-persistencia-poliglota-postgresql-mongodb.md) | Persistencia políglota: PostgreSQL + MongoDB | Aceptada |
 
 El ADR-001 documenta la decisión de utilizar Python y Django REST Framework como stack alternativo al stack de referencia del curso, así como las alternativas consideradas y sus consecuencias.
 
