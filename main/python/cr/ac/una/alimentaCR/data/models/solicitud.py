@@ -39,6 +39,7 @@ class Solicitud(models.Model):
         null=True,
         blank=True
     )
+    
 
     class Meta:
         managed = False
