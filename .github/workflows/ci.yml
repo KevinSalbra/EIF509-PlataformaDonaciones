@@ -47,4 +47,4 @@ jobs:
         run: python manage.py check
 
       - name: Ejecutar pruebas
-        run: python manage.py test main/test/cr/ac/una/alimentaCR
+        run: python -m pytest -v
