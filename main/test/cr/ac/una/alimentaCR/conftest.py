@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 import pytest
@@ -17,6 +18,10 @@ def preparar_esquema_flyway(django_db_setup, django_db_blocker):
     4. Flyway ejecuta V1, V2, etc. desde cero.
     5. Se ejecutan los tests.
     6. pytest-django elimina la base temporal.
+
+    En local se utiliza Docker Compose.
+    En CI se utiliza el PostgreSQL proporcionado
+    por GitHub Actions.
     """
 
     conexion = connections["default"]
@@ -48,29 +53,66 @@ def preparar_esquema_flyway(django_db_setup, django_db_blocker):
             cursor.execute("DROP SCHEMA public CASCADE;")
             cursor.execute("CREATE SCHEMA public;")
 
-    flyway_url = (
-        "jdbc:postgresql://postgres:5432/"
-        f"{nombre_base_pruebas}"
-    )
-
     print(
         f"Ejecutando Flyway sobre: "
         f"{nombre_base_pruebas}"
     )
 
-    subprocess.run(
-        [
-            "docker",
-            "compose",
-            "run",
-            "--rm",
-            "-e",
-            f"FLYWAY_URL={flyway_url}",
-            "flyway",
-            "migrate",
-        ],
-        check=True,
-    )
+    # ---------------------------------------------------------
+    # GitHub Actions
+    # ---------------------------------------------------------
+    if os.getenv("CI") == "true":
+
+        flyway_url = (
+            "jdbc:postgresql://localhost:5432/"
+            f"{nombre_base_pruebas}"
+        )
+
+        ruta_migraciones = os.path.abspath(
+            "database/migrations"
+        )
+
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                "host",
+                "-v",
+                f"{ruta_migraciones}:/flyway/sql",
+                "flyway/flyway:13.3.0",
+                f"-url={flyway_url}",
+                "-user=postgres",
+                "-password=postgres",
+                "migrate",
+            ],
+            check=True,
+        )
+
+    # ---------------------------------------------------------
+    # Entorno local
+    # ---------------------------------------------------------
+    else:
+
+        flyway_url = (
+            "jdbc:postgresql://postgres:5432/"
+            f"{nombre_base_pruebas}"
+        )
+
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "run",
+                "--rm",
+                "-e",
+                f"FLYWAY_URL={flyway_url}",
+                "flyway",
+                "migrate",
+            ],
+            check=True,
+        )
 
     print(
         f"Esquema Flyway preparado correctamente en "
