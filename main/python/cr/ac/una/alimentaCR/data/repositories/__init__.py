@@ -5,3 +5,4 @@ from .categoria_repository import CategoriaRepository
 from .donacion_repository import DonacionRepository
 from .solicitud_repository import SolicitudRepository
 from .entrega_repository import EntregaRepository
+from .bitacora_repository import BitacoraRepository
