@@ -7,14 +7,109 @@
 const dbAlimentaCR = db.getSiblingDB("alimentacr_bitacora");
 
 // --------------------------------------------
-// 1. Crear la colección "eventos"
+// 1. Definir el validador de eventos
 // --------------------------------------------
+
+const validadorEventos = {
+    $jsonSchema: {
+        bsonType: "object",
+
+        required: [
+            "tipo_evento",
+            "fecha_hora",
+            "entidad",
+            "entidad_id"
+        ],
+
+        properties: {
+            tipo_evento: {
+                bsonType: "string",
+                description:
+                    "El tipo de evento debe pertenecer al catálogo permitido.",
+                enum: [
+                    "ORGANIZACION_REGISTRADA",
+                    "ORGANIZACION_APROBADA",
+                    "DONACION_PUBLICADA",
+                    "DONACION_ASIGNADA",
+                    "DONACION_ENTREGADA",
+                    "DONACION_CANCELADA",
+                    "SOLICITUD_CREADA",
+                    "SOLICITUD_ACEPTADA",
+                    "SOLICITUD_RECHAZADA",
+                    "ENTREGA_PROGRAMADA",
+                    "ENTREGA_CONFIRMADA",
+                    "ENTREGA_CANCELADA"
+                ]
+            },
+
+            fecha_hora: {
+                bsonType: "date",
+                description:
+                    "La fecha y hora del evento debe ser de tipo Date."
+            },
+
+            usuario_id: {
+                bsonType: ["int", "long"],
+                description:
+                    "Identificador del usuario que realizó la acción."
+            },
+
+            entidad: {
+                bsonType: "string",
+                description:
+                    "La entidad debe pertenecer al catálogo permitido.",
+                enum: [
+                    "ORGANIZACION",
+                    "DONACION",
+                    "SOLICITUD",
+                    "ENTREGA"
+                ]
+            },
+
+            entidad_id: {
+                bsonType: ["int", "long"],
+                description:
+                    "Identificador de la entidad afectada."
+            },
+
+            datos: {
+                bsonType: "object",
+                description:
+                    "Información adicional y flexible propia del evento."
+            }
+        }
+    }
+};
+
+// --------------------------------------------
+// 2. Crear la colección "eventos"
+// --------------------------------------------
+
 if (!dbAlimentaCR.getCollectionNames().includes("eventos")) {
-    dbAlimentaCR.createCollection("eventos");
+    dbAlimentaCR.createCollection(
+        "eventos",
+        {
+            validator: validadorEventos,
+            validationLevel: "strict",
+            validationAction: "error"
+        }
+    );
+
+    print("Colección 'eventos' creada con su validador.");
+} else {
+    // Si la colección ya existe, actualizar su validador
+    dbAlimentaCR.runCommand({
+        collMod: "eventos",
+        validator: validadorEventos,
+        validationLevel: "strict",
+        validationAction: "error"
+    });
+
+    print("Validador de la colección 'eventos' actualizado.");
 }
 
 // --------------------------------------------
-// 2. Crear los índices
+// 3. Crear los índices
 // --------------------------------------------
 
 // Índice por fecha_hora
@@ -42,4 +137,4 @@ dbAlimentaCR.eventos.createIndex(
 );
 
 print("Base de datos alimentacr_bitacora inicializada correctamente.");
-print("Colección 'eventos' e índices creados.");
+print("Colección 'eventos', validador e índices configurados.");

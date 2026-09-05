@@ -21,6 +21,8 @@ Se utilizará una arquitectura de persistencia políglota compuesta por:
 
 PostgreSQL como base de datos relacional principal, para el núcleo transaccional del sistema: organizaciones, usuarios, categorías, donaciones, solicitudes y entregas. El esquema se administra mediante migraciones versionadas con Flyway, en tercera forma normal, con restricciones (CHECK, UNIQUE, FK) e índices justificados según los patrones de consulta de cada tabla.
 
+Flyway se establece como la fuente de verdad del esquema relacional. Los modelos ubicados en `data/models/` mapean las tablas creadas por Flyway y utilizan `managed = False` para evitar que Django intente administrarlas. Cuando se modifique el esquema, primero deberá crearse una nueva migración Flyway y luego actualizarse el modelo Django correspondiente. `inspectdb` podrá utilizarse únicamente como herramienta de verificación del mapeo.
+
 MongoDB como base de datos documental, exclusivamente para la bitácora de eventos del sistema: una única colección, eventos, que registra el historial de acciones (tipo_evento, fecha_hora, usuario_id, entidad, entidad_id, datos) ocurridas sobre las entidades administradas en PostgreSQL.
 
 Ambas bases de datos se ejecutan mediante Docker Compose, permitiendo levantar el entorno completo con un solo comando. La colección eventos, sus índices y los datos de ejemplo se inicializan automáticamente mediante scripts en database/mongodb/init/, siguiendo el mismo principio de reproducibilidad que las migraciones de Flyway aplican sobre PostgreSQL.
