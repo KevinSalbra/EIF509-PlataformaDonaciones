@@ -350,3 +350,4 @@ La incorporación de Testcontainers permite que las pruebas de integración de A
 La preparación del esquema mediante Flyway garantiza además que las pruebas utilicen las mismas migraciones versionadas que definen la estructura relacional del proyecto.
 
 Con las seis pruebas específicas de repositorios, las pruebas de N+1 y la validación de infraestructura, la suite proporciona evidencia del funcionamiento de la capa de persistencia, de la generalización de repositorios y de las consultas de negocio implementadas durante el Laboratorio 3.
+
