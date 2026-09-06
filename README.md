@@ -419,7 +419,7 @@ Si la aplicación está corriendo correctamente, este comando debe devolver una 
 | `docker compose down` | Elimina los contenedores y conserva los volúmenes |
 | `docker compose down -v` | Elimina los contenedores y los datos almacenados en los volúmenes |
 
-> El esquema relacional de AlimentaCR se administra mediante Flyway. Los comandos de migración de Django se conservan para los componentes propios del framework cuando correspondan, pero las tablas del dominio se crean mediante los archivos SQL de `database/migrations/`.
+> Flyway es la fuente de verdad del esquema relacional de AlimentaCR. Los modelos de `data/models/` utilizan `managed = False` y únicamente mapean las tablas creadas mediante los archivos SQL de `database/migrations/`. Ante un cambio del esquema, primero debe crearse una nueva migración Flyway y luego actualizarse el modelo Django correspondiente. Las migraciones de Django se conservan únicamente para los componentes propios del framework.
 
 ---
 

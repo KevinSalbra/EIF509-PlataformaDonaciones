@@ -4,8 +4,6 @@
 -- los registros de PostgreSQL con los eventos de MongoDB.
 -- =====================================================
 
-BEGIN;
-
 -- =====================================================
 -- 1. ORGANIZACIONES
 -- =====================================================
@@ -403,5 +401,3 @@ ALTER TABLE solicitud
 
 ALTER TABLE entrega
     ALTER COLUMN id_entrega RESTART WITH 3;
-
-COMMIT;
