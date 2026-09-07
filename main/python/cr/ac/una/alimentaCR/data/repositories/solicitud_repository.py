@@ -19,6 +19,12 @@ class SolicitudRepository(BaseRepository):
             organizacion_beneficiaria_id=organizacion_id
         )
 
+    def obtener_pendientes_por_donacion(self, donacion_id):
+        return self.model.objects.filter(
+            donacion_id=donacion_id,
+            estado=Solicitud.Estado.PENDIENTE,
+        )
+
     def existe_solicitud_pendiente(self, donacion_id, organizacion_id):
         return self.model.objects.filter(
             donacion_id=donacion_id,
