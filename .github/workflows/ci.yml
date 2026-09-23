@@ -47,5 +47,10 @@ jobs:
       - name: Verificar configuración de Django
         run: python manage.py check
 
-      - name: Ejecutar pruebas
-        run: python -m pytest -v
+      - name: Ejecutar pruebas y verificar cobertura
+        run: |
+          python -m pytest \
+            --cov=cr.ac.una.alimentaCR.business \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            -v

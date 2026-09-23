@@ -27,3 +27,26 @@ class DonacionNoDisponibleError(ErrorNegocio):
 class UsuarioNoAutorizadoError(ErrorNegocio):
     """El Usuario que intenta aceptar la Solicitud no pertenece a la
     Organizacion donante de la Donacion (no es el propietario)."""
+
+class OrganizacionNoExisteError(ErrorNegocio):
+    """No existe una Organizacion con el id indicado."""
+
+
+class OrganizacionNoAutorizadaError(ErrorNegocio):
+    """La Organizacion no es donante o no se encuentra aprobada."""
+
+
+class CategoriaNoExisteError(ErrorNegocio):
+    """No existe una Categoria con el id indicado."""
+
+
+class CategoriaInactivaError(ErrorNegocio):
+    """La Categoria seleccionada no se encuentra activa."""
+
+
+class CantidadInvalidaError(ErrorNegocio):
+    """La cantidad de alimento debe ser mayor que cero."""
+
+
+class FechaLimiteInvalidaError(ErrorNegocio):
+    """La fecha limite de retiro debe ser posterior a la fecha actual."""

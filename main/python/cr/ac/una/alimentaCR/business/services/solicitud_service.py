@@ -124,7 +124,7 @@ class SolicitudService:
         self.bitacora_repository.registrar({
             "usuario_id": id_usuario,
             "tipo_evento": "SOLICITUD_ACEPTADA",
-            "entidad": "solicitud",
+            "entidad": "SOLICITUD",
             "entidad_id": solicitud.id_solicitud,
             "fecha_hora": timezone.now(),
             "descripcion": (

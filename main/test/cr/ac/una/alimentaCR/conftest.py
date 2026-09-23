@@ -49,7 +49,7 @@ def postgres_testcontainer():
     print("\nPostgreSQL temporal eliminado.")
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def preparar_esquema_flyway(
     postgres_testcontainer,
     django_db_setup,
