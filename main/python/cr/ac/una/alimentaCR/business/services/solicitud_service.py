@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from ...data.models import Donacion, Entrega, Solicitud
+from ...data.models import Donacion, Entrega
 from ...data.repositories import (
     BitacoraRepository,
     DonacionRepository,
@@ -12,9 +12,9 @@ from ...data.repositories import (
 from ..exceptions import (
     DonacionNoDisponibleError,
     SolicitudNoExisteError,
-    SolicitudNoPendienteError,
     UsuarioNoAutorizadoError,
 )
+from ..states import obtener_estado
 
 
 class SolicitudService:
@@ -36,6 +36,9 @@ class SolicitudService:
     7. Se crea la Entrega asociada a la Solicitud aceptada.
     8. Se registra el evento en la Bitacora (MongoDB).
 
+    Los repositorios se reciben por parametro (con un valor por
+    defecto) para poder sustituirlos por dobles de prueba (mocks) en
+    las pruebas unitarias de la Meta 4, sin tocar la base de datos.
     """
 
     def __init__(
@@ -80,11 +83,8 @@ class SolicitudService:
                 f"No existe una solicitud con id {id_solicitud}."
             )
 
-        if solicitud.estado != Solicitud.Estado.PENDIENTE:
-            raise SolicitudNoPendienteError(
-                f"La solicitud {id_solicitud} no esta pendiente "
-                f"(estado actual: {solicitud.estado})."
-            )
+        estado_actual = obtener_estado(solicitud.estado)
+        estado_actual.aceptar(solicitud)
 
         donacion = solicitud.donacion
         self._validar_propietario(donacion, id_usuario)
@@ -97,7 +97,6 @@ class SolicitudService:
 
         self._rechazar_otras_solicitudes_pendientes(donacion, solicitud)
 
-        solicitud.estado = Solicitud.Estado.ACEPTADA
         self.solicitud_repository.guardar(solicitud)
 
         donacion.estado = Donacion.Estado.ASIGNADA
@@ -146,5 +145,5 @@ class SolicitudService:
         for otra_solicitud in pendientes:
             if otra_solicitud.id_solicitud == solicitud_aceptada.id_solicitud:
                 continue
-            otra_solicitud.estado = Solicitud.Estado.RECHAZADA
+            obtener_estado(otra_solicitud.estado).rechazar(otra_solicitud)
             self.solicitud_repository.guardar(otra_solicitud)
