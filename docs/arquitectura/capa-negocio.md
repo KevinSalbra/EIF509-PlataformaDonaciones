@@ -4,10 +4,11 @@
 
 Este documento describe los avances realizados en la capa de negocio de
 AlimentaCR durante el desarrollo del Laboratorio 4. En esta etapa se
-trabajó en el proceso de publicación de donaciones, la aplicación del
-patrón Specification, la integración con la capa de presentación y la
-bitácora, así como en el fortalecimiento de las pruebas automatizadas de
-los procesos de negocio.
+trabajó en el proceso de aceptación de solicitudes, el proceso de
+publicación de donaciones, la aplicación de los patrones Specification y
+State, la integración con la capa de presentación y la bitácora, así
+como en el fortalecimiento de las pruebas automatizadas de los procesos
+de negocio.
 
 También se realizaron ajustes en la infraestructura de pruebas para
 separar correctamente las pruebas unitarias de las pruebas de
@@ -43,6 +44,26 @@ Cuando las validaciones son satisfactorias, se construye la entidad
 `Donacion`, se establece la fecha de publicación y se utiliza
 `DonacionRepository` para persistirla.
 
+## 2.1 Proceso de aceptación de solicitudes
+
+El segundo proceso de negocio de la propuesta de dominio, aceptar una
+Solicitud y generar la Entrega correspondiente, se coordina en
+`SolicitudService`, también dentro de la capa `business`.
+
+El servicio aplica, en orden, las siguientes reglas:
+
+-   La Solicitud indicada debe existir.
+-   La Solicitud debe encontrarse en estado `PENDIENTE`.
+-   El usuario que acepta debe pertenecer a la organización donante
+    propietaria de la Donación asociada.
+-   La Donación debe encontrarse en estado `DISPONIBLE`.
+
+Cuando las validaciones son satisfactorias, las demás Solicitudes
+pendientes de la misma Donación se rechazan, la Donación pasa a
+`ASIGNADA`, se crea la Entrega en estado `PENDIENTE` y se registra el
+evento correspondiente en la bitácora. Todo el proceso relacional se
+ejecuta bajo `@transaction.atomic`.
+
 ## 3. Excepciones de negocio
 
 Para representar de forma explícita los incumplimientos de las reglas
@@ -58,12 +79,21 @@ Para el proceso de publicación de donaciones se agregaron:
 -   `CantidadInvalidaError`
 -   `FechaLimiteInvalidaError`
 
+Para el proceso de aceptación de solicitudes se agregaron:
+
+-   `SolicitudNoExisteError`
+-   `SolicitudNoPendienteError`
+-   `DonacionNoDisponibleError`
+-   `UsuarioNoAutorizadoError`
+
 El uso de excepciones propias permite diferenciar los errores esperados
 del negocio de errores técnicos o inesperados. Asimismo, facilita que la
 capa de presentación transforme posteriormente cada situación en una
 respuesta HTTP apropiada sin trasladar esa responsabilidad al servicio.
 
-## 4. Aplicación del patrón Specification
+## 4. Patrones de diseño aplicados
+
+### 4.1 Patrón Specification (proceso de publicación de donaciones)
 
 Las reglas asociadas a la publicación de una donación se separaron
 mediante el patrón de diseño **Specification**.
@@ -82,44 +112,83 @@ Se definieron las siguientes especificaciones:
 Cada especificación encapsula una regla concreta y genera la excepción
 de negocio correspondiente cuando la condición evaluada no se cumple.
 
-### 4.1 Justificación
+**Justificación.** La publicación de una donación depende de varias
+condiciones independientes. Mantener todas estas validaciones
+directamente dentro de `DonacionService` provocaría que el servicio
+acumulara estructuras condicionales y mezclara la coordinación del
+proceso con la implementación detallada de cada regla. Specification
+permite mantener cada condición separada y con una responsabilidad
+específica: `DonacionService` conserva la responsabilidad de coordinar
+el caso de uso, mientras las especificaciones se encargan de las reglas
+individuales. Esta organización también facilita la incorporación de
+nuevas reglas y la realización de pruebas independientes sobre cada
+condición.
 
-La publicación de una donación depende de varias condiciones
-independientes. Mantener todas estas validaciones directamente dentro de
-`DonacionService` provocaría que el servicio acumulara estructuras
-condicionales y mezclara la coordinación del proceso con la
-implementación detallada de cada regla.
+### 4.2 Patrón State (proceso de aceptación de solicitudes)
 
-Specification permite mantener cada condición separada y con una
-responsabilidad específica. De esta forma, `DonacionService` conserva la
-responsabilidad de coordinar el caso de uso, mientras las
-especificaciones se encargan de las reglas individuales.
+El ciclo de vida de una `Solicitud` (`PENDIENTE → ACEPTADA`,
+`PENDIENTE → RECHAZADA`, `PENDIENTE → CANCELADA`) se modeló mediante el
+patrón de diseño **State**.
 
-Esta organización también facilita la incorporación de nuevas reglas y
-la realización de pruebas independientes sobre cada condición.
+La implementación se encuentra en:
+
+`business/states/solicitud_states.py`
+
+Se definieron las siguientes clases de estado:
+
+-   `PendienteState`: única desde la cual se permite aceptar, rechazar o
+    cancelar una Solicitud.
+-   `AceptadaState`, `RechazadaState`, `CanceladaState`: estados
+    terminales, comunes a través de la clase intermedia `_EstadoFinal`,
+    desde los cuales cualquier transición es inválida.
+
+`SolicitudService` obtiene el objeto de estado correspondiente al valor
+almacenado en `Solicitud.estado` mediante `obtener_estado(...)` y le
+delega la validación y la ejecución de cada transición, en lugar de
+comparar el valor del estado directamente con el enum.
+
+**Justificación.** Qué transiciones son válidas para una Solicitud
+depende exclusivamente de su estado actual. Sin este patrón, cada
+servicio que manipule una Solicitud -- `SolicitudService.aceptar_solicitud`
+en este laboratorio, y en el futuro un eventual proceso para cancelar
+una solicitud (Proceso 4 de la propuesta de dominio) -- terminaría
+repitiendo el mismo bloque de comparaciones `if estado != PENDIENTE:
+raise ...` disperso por distintos servicios. Centralizar la regla en
+las clases de estado evita esa duplicación y deja explícitas, en un
+solo lugar, las transiciones permitidas del dominio.
 
 ## 5. Integración con la capa de presentación
 
-Para controlar los datos utilizados por el proceso de publicación se
-incorporaron serializers de Django REST Framework.
+Para controlar los datos utilizados por cada proceso se incorporaron
+serializers de Django REST Framework.
 
-Entre los componentes utilizados se encuentran:
+Para el proceso de publicación de donaciones:
 
 -   `PublicarDonacionRequestSerializer`
 -   `DonacionResponseSerializer`
 -   `PublicarDonacionView`
 
-El serializer de entrada se encarga de validar aspectos estructurales,
-como los tipos de datos, identificadores, longitudes, unidad de medida y
-formato de fecha.
+Para el proceso de aceptación de solicitudes:
 
-Las reglas propias del dominio, como determinar si una organización está
-autorizada para donar o si una categoría se encuentra activa, permanecen
-en la capa `business`.
+-   `AceptarSolicitudRequestSerializer`
+-   `EntregaResponseSerializer`
+-   `AceptarSolicitudView`
 
-`PublicarDonacionView` recibe la solicitud HTTP, valida la entrada,
-invoca el servicio de negocio y transforma las excepciones conocidas en
-respuestas HTTP.
+En ambos casos, el serializer de entrada se encarga de validar aspectos
+estructurales, como los tipos de datos, identificadores, longitudes,
+unidad de medida y formato de fecha. Las reglas propias del dominio,
+como determinar si una organización está autorizada para donar, si una
+categoría se encuentra activa, o si un usuario es propietario de una
+donación, permanecen en la capa `business`.
+
+Cada vista (`PublicarDonacionView`, `AceptarSolicitudView`) recibe la
+solicitud HTTP, valida la entrada, invoca el servicio de negocio
+correspondiente y transforma las excepciones conocidas en respuestas
+HTTP: `404` cuando el recurso no existe, `403` cuando el usuario no está
+autorizado, `409` cuando el estado del recurso no permite la operación,
+y `400` cuando el propio DTO de entrada rechaza el formato de los datos.
+En ningún caso las entidades del ORM (`Donacion`, `Entrega`) cruzan la
+frontera del servicio hacia la vista o el cliente HTTP directamente.
 
 ## 6. Registro de la publicación en la bitácora
 
@@ -138,6 +207,10 @@ como valor de la entidad.
 Después de la corrección se comprobó el flujo completo: la donación fue
 persistida en PostgreSQL y el evento `DONACION_PUBLICADA` fue registrado
 correctamente en la colección `eventos` de la bitácora.
+
+De manera análoga, el proceso de aceptación de solicitudes registra el
+evento `SOLICITUD_ACEPTADA` en la misma colección una vez que la parte
+relacional del proceso se completa exitosamente.
 
 ## 7. Pruebas unitarias del proceso de publicación
 
@@ -313,10 +386,11 @@ Django mediante `manage.py check`.
 
 ## 13. Estado del avance
 
-Con estos cambios se incorporó el proceso de publicación de donaciones a
-la capa de negocio, junto con sus reglas, excepciones, especificaciones,
-entrada y salida desde la capa de presentación y registro en la
-bitácora.
+Con estos cambios se incorporaron los dos procesos de negocio de la
+propuesta de dominio -- publicación de donaciones y aceptación de
+solicitudes --, junto con sus reglas, excepciones, los patrones
+Specification y State, la frontera de entrada y salida desde la capa de
+presentación y el registro correspondiente en la bitácora.
 
 También se fortaleció la validación automatizada de la capa `business`.
 Las pruebas unitarias quedaron separadas de las pruebas que requieren
