@@ -28,6 +28,7 @@ jobs:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       CI: true
+      SECRET_KEY: clave-solo-para-ci
 
     steps:
       - name: Descargar repositorio
