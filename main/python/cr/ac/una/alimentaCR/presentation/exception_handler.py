@@ -18,13 +18,16 @@ MAPA_EXCEPCIONES = {
     err.SolicitudNoExisteError: status.HTTP_404_NOT_FOUND,
     err.OrganizacionNoExisteError: status.HTTP_404_NOT_FOUND,
     err.CategoriaNoExisteError: status.HTTP_404_NOT_FOUND,
+    err.UsuarioNoExisteError: status.HTTP_404_NOT_FOUND,
     err.SolicitudNoPendienteError: status.HTTP_409_CONFLICT,
     err.DonacionNoDisponibleError: status.HTTP_409_CONFLICT,
+    err.CorreoDuplicadoError: status.HTTP_409_CONFLICT,
     err.UsuarioNoAutorizadoError: status.HTTP_403_FORBIDDEN,
     err.OrganizacionNoAutorizadaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     err.CategoriaInactivaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     err.CantidadInvalidaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     err.FechaLimiteInvalidaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    err.RolOrganizacionIncompatibleError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     err.ErrorNegocio: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
