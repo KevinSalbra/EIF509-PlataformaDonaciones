@@ -44,6 +44,8 @@ def responder_con(excepcion):
         (e.UsuarioNoExisteError("no existe"), 404),
         (e.CorreoDuplicadoError("correo repetido"), 409),
         (e.RolOrganizacionIncompatibleError("rol"), 422),
+        (e.DonacionNoExisteError("no existe"), 404),
+        (e.SolicitudDuplicadaError("duplicada"), 409),
     ],
 )
 def test_cada_excepcion_produce_problem_details(excepcion, codigo):
