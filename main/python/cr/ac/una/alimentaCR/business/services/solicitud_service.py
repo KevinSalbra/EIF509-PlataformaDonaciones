@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from ...data.models import Donacion, Entrega
+from ...data.models import Donacion, Entrega, Organizacion, Solicitud
 from ...data.repositories import (
     BitacoraRepository,
     DonacionRepository,
@@ -11,8 +11,12 @@ from ...data.repositories import (
 )
 from ..exceptions import (
     DonacionNoDisponibleError,
+    DonacionNoExisteError,
+    OrganizacionNoAutorizadaError,
+    SolicitudDuplicadaError,
     SolicitudNoExisteError,
     UsuarioNoAutorizadoError,
+    UsuarioNoExisteError,
 )
 from ..states import obtener_estado
 
@@ -147,3 +151,113 @@ class SolicitudService:
                 continue
             obtener_estado(otra_solicitud.estado).rechazar(otra_solicitud)
             self.solicitud_repository.guardar(otra_solicitud)
+        
+        
+    # ------------------------------------------------------------------
+    # Consulta, solicitud de una donacion (Proceso 3) y cancelacion de
+    # una solicitud (Proceso 4)
+    # ------------------------------------------------------------------
+
+    def listar_solicitudes(self):
+        return list(
+            self.solicitud_repository.obtener_todos().order_by("id_solicitud")
+        )
+
+    def obtener_solicitud(self, id_solicitud: int) -> Solicitud:
+        solicitud = self.solicitud_repository.obtener_por_id(id_solicitud)
+        if solicitud is None:
+            raise SolicitudNoExisteError(
+                f"No existe una solicitud con id {id_solicitud}."
+            )
+        return solicitud
+
+    def crear_solicitud(
+        self, id_donacion: int, id_usuario: int, observacion: str = None
+    ) -> Solicitud:
+        """
+        Proceso 3: una organizacion beneficiaria solicita una donacion.
+
+        Reglas, en orden:
+        1. El usuario y la donacion deben existir.
+        2. La organizacion del usuario debe ser BENEFICIARIA y estar
+           APROBADA.
+        3. La organizacion no puede solicitar su propia donacion.
+        4. La donacion debe estar DISPONIBLE.
+        5. La organizacion no puede tener otra solicitud PENDIENTE
+           para la misma donacion.
+        La solicitud se crea en estado PENDIENTE.
+        """
+        usuario = self._obtener_usuario(id_usuario)
+        donacion = self.donacion_repository.obtener_por_id(id_donacion)
+        if donacion is None:
+            raise DonacionNoExisteError(
+                f"No existe una donacion con id {id_donacion}."
+            )
+
+        organizacion = usuario.organizacion
+        if (
+            organizacion.tipo != Organizacion.Tipo.BENEFICIARIA
+            or organizacion.estado != Organizacion.Estado.APROBADA
+        ):
+            raise OrganizacionNoAutorizadaError(
+                f"La organizacion {organizacion.id_organizacion} debe ser "
+                f"beneficiaria y estar aprobada para solicitar donaciones."
+            )
+
+        if donacion.organizacion_donante_id == organizacion.id_organizacion:
+            raise OrganizacionNoAutorizadaError(
+                "Una organizacion no puede solicitar su propia donacion."
+            )
+
+        if donacion.estado != Donacion.Estado.DISPONIBLE:
+            raise DonacionNoDisponibleError(
+                f"La donacion {id_donacion} no esta disponible "
+                f"(estado actual: {donacion.estado})."
+            )
+
+        if self.solicitud_repository.existe_solicitud_pendiente(
+            id_donacion, organizacion.id_organizacion
+        ):
+            raise SolicitudDuplicadaError(
+                f"La organizacion {organizacion.id_organizacion} ya tiene "
+                f"una solicitud pendiente para la donacion {id_donacion}."
+            )
+
+        solicitud = Solicitud(
+            donacion=donacion,
+            organizacion_beneficiaria=organizacion,
+            fecha_solicitud=timezone.now(),
+            estado=Solicitud.Estado.PENDIENTE,
+            observacion=observacion,
+        )
+        return self.solicitud_repository.guardar(solicitud)
+
+    def cancelar_solicitud(self, id_solicitud: int, id_usuario: int) -> Solicitud:
+        """
+        Proceso 4: cancelar una solicitud pendiente.
+
+        Reglas, en orden:
+        1. La solicitud y el usuario deben existir.
+        2. Solo la organizacion que creo la solicitud puede cancelarla.
+        3. Solo se cancelan solicitudes PENDIENTES (lo valida el
+           patron State).
+        """
+        solicitud = self.obtener_solicitud(id_solicitud)
+        usuario = self._obtener_usuario(id_usuario)
+
+        if usuario.organizacion_id != solicitud.organizacion_beneficiaria_id:
+            raise UsuarioNoAutorizadoError(
+                f"El usuario {id_usuario} no pertenece a la organizacion "
+                f"que creo la solicitud {id_solicitud}."
+            )
+
+        obtener_estado(solicitud.estado).cancelar(solicitud)
+        return self.solicitud_repository.guardar(solicitud)
+
+    def _obtener_usuario(self, id_usuario: int):
+        usuario = self.usuario_repository.obtener_por_id(id_usuario)
+        if usuario is None:
+            raise UsuarioNoExisteError(
+                f"No existe un usuario con id {id_usuario}."
+            )
+        return usuario

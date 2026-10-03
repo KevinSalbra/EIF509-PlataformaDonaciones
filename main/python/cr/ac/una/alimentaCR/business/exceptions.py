@@ -63,3 +63,12 @@ class CorreoDuplicadoError(ErrorNegocio):
 
 class RolOrganizacionIncompatibleError(ErrorNegocio):
     """El rol del Usuario no corresponde al tipo de su Organizacion."""
+
+
+
+class DonacionNoExisteError(ErrorNegocio):
+    """No existe una Donacion con el id indicado."""
+
+
+class SolicitudDuplicadaError(ErrorNegocio):
+    """La organizacion ya tiene una Solicitud pendiente para esa Donacion."""
