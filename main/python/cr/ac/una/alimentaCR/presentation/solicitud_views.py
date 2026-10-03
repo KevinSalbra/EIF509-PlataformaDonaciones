@@ -1,3 +1,4 @@
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -5,6 +6,70 @@ from rest_framework.views import APIView
 from cr.ac.una.alimentaCR.business.services import SolicitudService
 
 from .serializers import AceptarSolicitudRequestSerializer, EntregaResponseSerializer
+from .solicitud_serializers import (
+    CancelarSolicitudQuerySerializer,
+    CrearSolicitudRequestSerializer,
+    SolicitudResponseSerializer,
+)
+
+
+class SolicitudListaView(APIView):
+    """
+    GET  /api/v1/solicitudes  -> 200, lista de solicitudes
+    POST /api/v1/solicitudes  -> 201 + Location | 400, 404, 409, 422
+
+    El POST expone el Proceso 3 (solicitar una donacion).
+    """
+
+    def get(self, request):
+        solicitudes = SolicitudService().listar_solicitudes()
+        return Response(
+            SolicitudResponseSerializer(solicitudes, many=True).data
+        )
+
+    def post(self, request):
+        entrada = CrearSolicitudRequestSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        datos = entrada.validated_data
+
+        solicitud = SolicitudService().crear_solicitud(
+            id_donacion=datos["id_donacion"],
+            id_usuario=datos["id_usuario"],
+            observacion=datos.get("observacion"),
+        )
+
+        respuesta = Response(
+            SolicitudResponseSerializer(solicitud).data,
+            status=status.HTTP_201_CREATED,
+        )
+        respuesta["Location"] = request.build_absolute_uri(
+            reverse("solicitud_detalle", args=[solicitud.id_solicitud])
+        )
+        return respuesta
+
+
+class SolicitudDetalleView(APIView):
+    """
+    GET    /api/v1/solicitudes/<id>  -> 200 | 404
+    DELETE /api/v1/solicitudes/<id>?id_usuario=<int>
+           -> 204 | 400, 403, 404, 409
+
+    El DELETE expone el Proceso 4: cancelar una solicitud pendiente
+    (cancelacion logica: el estado pasa a CANCELADA).
+    """
+
+    def get(self, request, id_solicitud: int):
+        solicitud = SolicitudService().obtener_solicitud(id_solicitud)
+        return Response(SolicitudResponseSerializer(solicitud).data)
+
+    def delete(self, request, id_solicitud: int):
+        entrada = CancelarSolicitudQuerySerializer(data=request.query_params)
+        entrada.is_valid(raise_exception=True)
+
+        SolicitudService().cancelar_solicitud(
+            id_solicitud, entrada.validated_data["id_usuario"]
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AceptarSolicitudView(APIView):
