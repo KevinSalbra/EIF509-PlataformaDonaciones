@@ -72,3 +72,16 @@ class DonacionNoExisteError(ErrorNegocio):
 
 class SolicitudDuplicadaError(ErrorNegocio):
     """La organizacion ya tiene una Solicitud pendiente para esa Donacion."""
+
+
+
+class EntregaNoExisteError(ErrorNegocio):
+    """No existe una Entrega con el id indicado."""
+
+
+class EntregaNoPendienteError(ErrorNegocio):
+    """La Entrega ya no esta pendiente y no admite cambios."""
+
+
+class FechaAcordadaInvalidaError(ErrorNegocio):
+    """La fecha acordada de la Entrega es anterior a la fecha actual."""
