@@ -41,6 +41,9 @@ def responder_con(excepcion):
         (NotFound("no encontrado"), 404),
         (ValidationError({"alimento": ["Este campo es requerido."]}), 400),
         (ZeroDivisionError("detalle interno"), 500),
+        (e.UsuarioNoExisteError("no existe"), 404),
+        (e.CorreoDuplicadoError("correo repetido"), 409),
+        (e.RolOrganizacionIncompatibleError("rol"), 422),
     ],
 )
 def test_cada_excepcion_produce_problem_details(excepcion, codigo):
