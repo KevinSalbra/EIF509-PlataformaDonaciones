@@ -50,3 +50,16 @@ class CantidadInvalidaError(ErrorNegocio):
 
 class FechaLimiteInvalidaError(ErrorNegocio):
     """La fecha limite de retiro debe ser posterior a la fecha actual."""
+
+
+
+class UsuarioNoExisteError(ErrorNegocio):
+    """No existe un Usuario con el id indicado."""
+
+
+class CorreoDuplicadoError(ErrorNegocio):
+    """Ya existe un Usuario registrado con ese correo."""
+
+
+class RolOrganizacionIncompatibleError(ErrorNegocio):
+    """El rol del Usuario no corresponde al tipo de su Organizacion."""
