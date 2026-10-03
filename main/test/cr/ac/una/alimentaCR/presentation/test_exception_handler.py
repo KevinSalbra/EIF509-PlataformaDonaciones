@@ -46,6 +46,9 @@ def responder_con(excepcion):
         (e.RolOrganizacionIncompatibleError("rol"), 422),
         (e.DonacionNoExisteError("no existe"), 404),
         (e.SolicitudDuplicadaError("duplicada"), 409),
+        (e.EntregaNoExisteError("no existe"), 404),
+        (e.EntregaNoPendienteError("no pendiente"), 409),
+        (e.FechaAcordadaInvalidaError("fecha"), 422),
     ],
 )
 def test_cada_excepcion_produce_problem_details(excepcion, codigo):
