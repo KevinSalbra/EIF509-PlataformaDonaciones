@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 
 from cr.ac.una.alimentaCR.business.services import SolicitudService
 
-from .serializers import AceptarSolicitudRequestSerializer, EntregaResponseSerializer
+from .entrega_serializers import EntregaResponseSerializer
+from .serializers import AceptarSolicitudRequestSerializer
 from .solicitud_serializers import (
     CancelarSolicitudQuerySerializer,
     CrearSolicitudRequestSerializer,
@@ -74,7 +75,7 @@ class SolicitudDetalleView(APIView):
 
 class AceptarSolicitudView(APIView):
     """
-    POST /api/v1/solicitudes/<id_solicitud>/aceptar
+    POST /api/v1/solicitudes/<id_solicitud>/aceptar -> 201 + Location
 
     Body: {"id_usuario": <int>}
 
@@ -91,7 +92,11 @@ class AceptarSolicitudView(APIView):
             id_solicitud, entrada.validated_data["id_usuario"]
         )
 
-        return Response(
+        respuesta = Response(
             EntregaResponseSerializer(entrega).data,
             status=status.HTTP_201_CREATED,
         )
+        respuesta["Location"] = request.build_absolute_uri(
+            reverse("entrega_detalle", args=[entrega.id_entrega])
+        )
+        return respuesta

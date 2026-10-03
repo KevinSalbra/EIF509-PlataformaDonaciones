@@ -15,20 +15,6 @@ class AceptarSolicitudRequestSerializer(serializers.Serializer):
     id_usuario = serializers.IntegerField(min_value=1)
 
 
-class EntregaResponseSerializer(serializers.Serializer):
-    """
-    DTO de salida para el Proceso #1.
-
-    Expone unicamente los campos que el exterior necesita conocer de
-    la Entrega creada.
-    """
-
-    id_entrega = serializers.IntegerField()
-    id_solicitud = serializers.IntegerField(source="solicitud_id")
-    estado = serializers.CharField()
-    fecha_creacion = serializers.DateTimeField()
-
-
 class PublicarDonacionRequestSerializer(serializers.Serializer):
     """
     DTO de entrada para el Proceso #2 (publicar donacion).
