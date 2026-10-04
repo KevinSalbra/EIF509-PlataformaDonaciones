@@ -9,6 +9,7 @@ from ...data.repositories import (
 )
 from ..exceptions import (
     CategoriaNoExisteError,
+    DonacionNoExisteError,
     OrganizacionNoExisteError,
 )
 from ..specifications import (
@@ -57,6 +58,28 @@ class DonacionService:
         self.bitacora_repository = (
             bitacora_repository or BitacoraRepository()
         )
+
+    def listar(self):
+        return list(
+            self.donacion_repository.obtener_todos().order_by(
+                "id_donacion"
+            )
+        )
+
+    def obtener(
+        self,
+        id_donacion: int,
+    ) -> Donacion:
+        donacion = self.donacion_repository.obtener_por_id(
+            id_donacion
+        )
+
+        if donacion is None:
+            raise DonacionNoExisteError(
+                f"No existe una donacion con id {id_donacion}."
+            )
+
+        return donacion
 
     def publicar_donacion(
         self,

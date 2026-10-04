@@ -31,6 +31,8 @@ class UsuarioNoAutorizadoError(ErrorNegocio):
 class OrganizacionNoExisteError(ErrorNegocio):
     """No existe una Organizacion con el id indicado."""
 
+class CedulaJuridicaDuplicadaError(ErrorNegocio):
+    """Ya existe una Organizacion con esa cedula juridica."""
 
 class OrganizacionNoAutorizadaError(ErrorNegocio):
     """La Organizacion no es donante o no se encuentra aprobada."""
@@ -39,6 +41,8 @@ class OrganizacionNoAutorizadaError(ErrorNegocio):
 class CategoriaNoExisteError(ErrorNegocio):
     """No existe una Categoria con el id indicado."""
 
+class NombreCategoriaDuplicadoError(ErrorNegocio):
+    """Ya existe una Categoria registrada con ese nombre."""
 
 class CategoriaInactivaError(ErrorNegocio):
     """La Categoria seleccionada no se encuentra activa."""

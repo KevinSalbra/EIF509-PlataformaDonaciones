@@ -24,6 +24,8 @@ MAPA_EXCEPCIONES = {
     err.SolicitudNoPendienteError: status.HTTP_409_CONFLICT,
     err.DonacionNoDisponibleError: status.HTTP_409_CONFLICT,
     err.CorreoDuplicadoError: status.HTTP_409_CONFLICT,
+    err.CedulaJuridicaDuplicadaError: status.HTTP_409_CONFLICT,
+    err.NombreCategoriaDuplicadoError: status.HTTP_409_CONFLICT,
     err.SolicitudDuplicadaError: status.HTTP_409_CONFLICT,
     err.EntregaNoPendienteError: status.HTTP_409_CONFLICT,
     err.UsuarioNoAutorizadoError: status.HTTP_403_FORBIDDEN,
