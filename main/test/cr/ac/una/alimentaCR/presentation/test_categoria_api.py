@@ -43,7 +43,7 @@ def test_listar_categorias_200(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) >= 6
+    assert respuesta.json()["count"] >= 6
 
 
 def test_obtener_categoria_200(cliente):

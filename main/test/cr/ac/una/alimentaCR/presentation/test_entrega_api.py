@@ -45,7 +45,7 @@ def test_listar_entregas_200(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) >= 2
+    assert respuesta.json()["count"] >= 2
 
 
 def test_obtener_entrega_200(cliente):

@@ -47,7 +47,7 @@ def test_listar_organizaciones_200(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) >= 6
+    assert respuesta.json()["count"] >= 6
 
 
 def test_obtener_organizacion_200(cliente):

@@ -45,8 +45,9 @@ def test_listar_usuarios_200_sin_exponer_contrasena(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) >= 6
-    for usuario in respuesta.json():
+    cuerpo = respuesta.json()
+    assert cuerpo["count"] >= 6
+    for usuario in cuerpo["results"]:
         assert "contrasena" not in usuario
 
 

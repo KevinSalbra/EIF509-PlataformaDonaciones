@@ -36,7 +36,7 @@ def test_listar_solicitudes_200(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert len(respuesta.json()) >= 6
+    assert respuesta.json()["count"] >= 6
 
 
 def test_obtener_solicitud_200(cliente):

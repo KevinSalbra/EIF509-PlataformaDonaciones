@@ -42,8 +42,8 @@ def test_listar_donaciones_200(cliente):
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
-    assert isinstance(respuesta.data, list)
-    assert len(respuesta.data) >= 6
+    assert isinstance(respuesta.data["results"], list)
+    assert respuesta.data["count"] >= 6
 
 
 def test_obtener_donacion_200(cliente):
