@@ -13,6 +13,7 @@ from .solicitud_serializers import (
     SolicitudResponseSerializer,
 )
 
+from .listados import SolicitudConsultaSerializer, listar_paginado
 
 class SolicitudListaView(APIView):
     """
@@ -23,10 +24,16 @@ class SolicitudListaView(APIView):
     """
 
     def get(self, request):
-        solicitudes = SolicitudService().listar_solicitudes()
-        return Response(
-            SolicitudResponseSerializer(solicitudes, many=True).data
+        consulta = SolicitudConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        datos = consulta.validated_data
+        coleccion = SolicitudService().listar_solicitudes(
+            estado=datos.get("estado"),
+            id_organizacion=datos.get("id_organizacion"),
+            id_donacion=datos.get("id_donacion"),
+            orden=consulta.orden(),
         )
+        return listar_paginado(request, coleccion, SolicitudResponseSerializer)
 
     def post(self, request):
         entrada = CrearSolicitudRequestSerializer(data=request.data)

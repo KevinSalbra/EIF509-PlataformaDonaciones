@@ -10,6 +10,7 @@ from .serializers import (
     PublicarDonacionRequestSerializer,
 )
 
+from .listados import DonacionConsultaSerializer, listar_paginado
 
 class DonacionListaView(APIView):
     """
@@ -17,15 +18,17 @@ class DonacionListaView(APIView):
     """
 
     def get(self, request):
-        donaciones = DonacionService().listar()
-
-        return Response(
-            DonacionResponseSerializer(
-                donaciones,
-                many=True,
-            ).data
+        consulta = DonacionConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        datos = consulta.validated_data
+        coleccion = DonacionService().listar(
+            estado=datos.get("estado"),
+            id_categoria=datos.get("id_categoria"),
+            id_organizacion=datos.get("id_organizacion"),
+            por_vencer_en_dias=datos.get("por_vencer_en_dias"),
+            orden=consulta.orden(),
         )
-
+        return listar_paginado(request, coleccion, DonacionResponseSerializer)
 
 class DonacionDetalleView(APIView):
     """

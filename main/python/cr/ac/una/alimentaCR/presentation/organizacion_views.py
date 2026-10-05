@@ -11,6 +11,7 @@ from .organizacion_serializers import (
     OrganizacionResponseSerializer,
 )
 
+from .listados import OrganizacionConsultaSerializer, listar_paginado
 
 class OrganizacionListaView(APIView):
     """
@@ -19,14 +20,10 @@ class OrganizacionListaView(APIView):
     """
 
     def get(self, request):
-        organizaciones = OrganizacionService().listar()
-
-        return Response(
-            OrganizacionResponseSerializer(
-                organizaciones,
-                many=True,
-            ).data
-        )
+        consulta = OrganizacionConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        coleccion = OrganizacionService().listar(orden=consulta.orden())
+        return listar_paginado(request, coleccion, OrganizacionResponseSerializer)
 
     def post(self, request):
         entrada = CrearOrganizacionRequestSerializer(

@@ -11,6 +11,7 @@ from .usuario_serializers import (
     UsuarioResponseSerializer,
 )
 
+from .listados import UsuarioConsultaSerializer, listar_paginado
 
 class UsuarioListaView(APIView):
     """
@@ -19,8 +20,10 @@ class UsuarioListaView(APIView):
     """
 
     def get(self, request):
-        usuarios = UsuarioService().listar()
-        return Response(UsuarioResponseSerializer(usuarios, many=True).data)
+        consulta = UsuarioConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        coleccion = UsuarioService().listar(orden=consulta.orden())
+        return listar_paginado(request, coleccion, UsuarioResponseSerializer)
 
     def post(self, request):
         entrada = CrearUsuarioRequestSerializer(data=request.data)

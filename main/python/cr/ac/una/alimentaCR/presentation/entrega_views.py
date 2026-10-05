@@ -8,6 +8,7 @@ from .entrega_serializers import (
     EntregaResponseSerializer,
 )
 
+from .listados import EntregaConsultaSerializer, listar_paginado
 
 class EntregaListaView(APIView):
     """
@@ -18,9 +19,10 @@ class EntregaListaView(APIView):
     """
 
     def get(self, request):
-        entregas = EntregaService().listar_entregas()
-        return Response(EntregaResponseSerializer(entregas, many=True).data)
-
+        consulta = EntregaConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        coleccion = EntregaService().listar_entregas(orden=consulta.orden())
+        return listar_paginado(request, coleccion, EntregaResponseSerializer)
 
 class EntregaDetalleView(APIView):
     """

@@ -11,6 +11,7 @@ from .categoria_serializers import (
     CrearCategoriaRequestSerializer,
 )
 
+from .listados import CategoriaConsultaSerializer, listar_paginado
 
 class CategoriaListaView(APIView):
     """
@@ -19,14 +20,10 @@ class CategoriaListaView(APIView):
     """
 
     def get(self, request):
-        categorias = CategoriaService().listar()
-
-        return Response(
-            CategoriaResponseSerializer(
-                categorias,
-                many=True,
-            ).data
-        )
+        consulta = CategoriaConsultaSerializer(data=request.query_params)
+        consulta.is_valid(raise_exception=True)
+        coleccion = CategoriaService().listar(orden=consulta.orden())
+        return listar_paginado(request, coleccion, CategoriaResponseSerializer)
 
     def post(self, request):
         entrada = CrearCategoriaRequestSerializer(
