@@ -18,11 +18,9 @@ class OrganizacionService:
             organizacion_repository or OrganizacionRepository()
         )
 
-    def listar(self):
-        return list(
-            self.organizacion_repository.obtener_todos().order_by(
-                "id_organizacion"
-            )
+    def listar(self, orden=None):
+        return self.organizacion_repository.obtener_todos().order_by(
+            *(orden or ["id_organizacion"]), "pk"
         )
 
     def obtener(self, id_organizacion: int) -> Organizacion:

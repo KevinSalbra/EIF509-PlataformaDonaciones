@@ -36,9 +36,9 @@ class EntregaService:
         self.entrega_repository = entrega_repository or EntregaRepository()
         self.usuario_repository = usuario_repository or UsuarioRepository()
 
-    def listar_entregas(self):
-        return list(
-            self.entrega_repository.obtener_todos().order_by("id_entrega")
+    def listar_entregas(self, orden=None):
+        return self.entrega_repository.obtener_todos().order_by(
+            *(orden or ["id_entrega"]), "pk"
         )
 
     def obtener_entrega(self, id_entrega: int) -> Entrega:

@@ -13,6 +13,11 @@ from ..exceptions import (
     OrganizacionNoExisteError,
 )
 from ..specifications import (
+    DonacionPorCategoriaSpecification,
+    DonacionPorDonanteSpecification,
+    DonacionPorEstadoSpecification,
+    DonacionPorVencerSpecification,
+    combinar,
     CantidadPositivaSpecification,
     CategoriaActivaSpecification,
     FechaLimiteFuturaSpecification,
@@ -59,12 +64,29 @@ class DonacionService:
             bitacora_repository or BitacoraRepository()
         )
 
-    def listar(self):
-        return list(
-            self.donacion_repository.obtener_todos().order_by(
-                "id_donacion"
-            )
+    def listar(
+        self,
+        estado=None,
+        id_categoria=None,
+        id_organizacion=None,
+        por_vencer_en_dias=None,
+        orden=None,
+    ):
+
+        filtros = []
+        if estado is not None:
+            filtros.append(DonacionPorEstadoSpecification(estado))
+        if id_categoria is not None:
+            filtros.append(DonacionPorCategoriaSpecification(id_categoria))
+        if id_organizacion is not None:
+            filtros.append(DonacionPorDonanteSpecification(id_organizacion))
+        if por_vencer_en_dias is not None:
+            filtros.append(DonacionPorVencerSpecification(por_vencer_en_dias))
+
+        consulta = combinar(filtros).aplicar(
+            self.donacion_repository.obtener_todos()
         )
+        return consulta.order_by(*(orden or ["id_donacion"]), "pk")
 
     def obtener(
         self,

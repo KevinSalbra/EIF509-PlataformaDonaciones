@@ -16,11 +16,9 @@ class CategoriaService:
             categoria_repository or CategoriaRepository()
         )
 
-    def listar(self):
-        return list(
-            self.categoria_repository.obtener_todos().order_by(
-                "id_categoria"
-            )
+    def listar(self, orden=None):
+        return self.categoria_repository.obtener_todos().order_by(
+            *(orden or ["id_categoria"]), "pk"
         )
 
     def obtener(self, id_categoria: int) -> Categoria:

@@ -43,9 +43,9 @@ class UsuarioService:
             organizacion_repository or OrganizacionRepository()
         )
 
-    def listar(self):
-        return list(
-            self.usuario_repository.obtener_todos().order_by("id_usuario")
+    def listar(self, orden=None):
+        return self.usuario_repository.obtener_todos().order_by(
+            *(orden or ["id_usuario"]), "pk"
         )
 
     def obtener(self, id_usuario: int) -> Usuario:

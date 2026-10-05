@@ -18,6 +18,12 @@ from ..exceptions import (
     UsuarioNoAutorizadoError,
     UsuarioNoExisteError,
 )
+from ..specifications import (
+    SolicitudDeDonacionSpecification,
+    SolicitudDeOrganizacionSpecification,
+    SolicitudPorEstadoSpecification,
+    combinar,
+)
 from ..states import obtener_estado
 
 
@@ -158,10 +164,29 @@ class SolicitudService:
     # una solicitud (Proceso 4)
     # ------------------------------------------------------------------
 
-    def listar_solicitudes(self):
-        return list(
-            self.solicitud_repository.obtener_todos().order_by("id_solicitud")
+    def listar_solicitudes(
+        self,
+        estado=None,
+        id_organizacion=None,
+        id_donacion=None,
+        orden=None,
+    ):
+        """
+        Devuelve un QuerySet filtrado con Specifications y ordenado.
+        Solo se aplican los filtros recibidos.
+        """
+        filtros = []
+        if estado is not None:
+            filtros.append(SolicitudPorEstadoSpecification(estado))
+        if id_organizacion is not None:
+            filtros.append(SolicitudDeOrganizacionSpecification(id_organizacion))
+        if id_donacion is not None:
+            filtros.append(SolicitudDeDonacionSpecification(id_donacion))
+
+        consulta = combinar(filtros).aplicar(
+            self.solicitud_repository.obtener_todos()
         )
+        return consulta.order_by(*(orden or ["id_solicitud"]), "pk")
 
     def obtener_solicitud(self, id_solicitud: int) -> Solicitud:
         solicitud = self.solicitud_repository.obtener_por_id(id_solicitud)
