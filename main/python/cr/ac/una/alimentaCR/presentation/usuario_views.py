@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .permisos import EsAdministrador
 from cr.ac.una.alimentaCR.business.services import UsuarioService
 
 from .usuario_serializers import (
@@ -14,6 +14,7 @@ from .usuario_serializers import (
 from .listados import UsuarioConsultaSerializer, listar_paginado
 
 class UsuarioListaView(APIView):
+    permission_classes = [EsAdministrador]
     """
     GET  /api/v1/usuarios  -> 200, lista de usuarios
     POST /api/v1/usuarios  -> 201 + Location | 400, 404, 409, 422
@@ -50,6 +51,7 @@ class UsuarioListaView(APIView):
 
 
 class UsuarioDetalleView(APIView):
+    permission_classes = [EsAdministrador]  
     """
     GET /api/v1/usuarios/<id>  -> 200 | 404
     PUT /api/v1/usuarios/<id>  -> 200 | 400, 404, 422

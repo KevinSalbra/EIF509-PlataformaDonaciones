@@ -6,12 +6,15 @@ Datos de prueba usados:
 - Categoria 1: Frutas y verduras, ACTIVA
 - Categoria 2: Panaderia, ACTIVA
 - Categoria 6: Bebidas, INACTIVA
+- Usuario 1: ADMINISTRADOR
+- Usuario 2: REPRESENTANTE_DONANTE
 """
 
 import pytest
 from rest_framework.test import APIClient
 
-from cr.ac.una.alimentaCR.data.models import Categoria
+from cr.ac.una.alimentaCR.business.services import AuthService
+from cr.ac.una.alimentaCR.data.models import Categoria, Usuario
 
 
 pytestmark = [
@@ -28,25 +31,65 @@ def cliente():
     return APIClient()
 
 
+@pytest.fixture
+def usuario_administrador():
+    return Usuario.objects.get(pk=1)
+
+
+@pytest.fixture
+def usuario_donante():
+    return Usuario.objects.get(pk=2)
+
+
+def autenticar_cliente(cliente, usuario):
+    token = AuthService.generar_token(usuario)
+
+    cliente.credentials(
+        HTTP_AUTHORIZATION=f"Bearer {token}"
+    )
+
+
 def cuerpo_valido(**cambios):
     datos = {
         "nombre": "Productos congelados",
-        "descripcion": "Alimentos conservados mediante congelacion.",
+        "descripcion": (
+            "Alimentos conservados mediante congelacion."
+        ),
     }
+
     datos.update(cambios)
+
     return datos
 
 
-# ---------------------------------------------------------------- GET
+# ----------------------------------------------------------------
+# GET
+# ----------------------------------------------------------------
 
-def test_listar_categorias_200(cliente):
+def test_listar_categorias_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
     assert respuesta.json()["count"] >= 6
 
 
-def test_obtener_categoria_200(cliente):
+def test_obtener_categoria_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.get(f"{URL}/1")
 
     assert respuesta.status_code == 200
@@ -55,17 +98,37 @@ def test_obtener_categoria_200(cliente):
     assert respuesta.json()["estado"] == "ACTIVA"
 
 
-def test_obtener_categoria_inexistente_404(cliente):
-    respuesta = cliente.get(f"{URL}/999999")
+def test_obtener_categoria_inexistente_404(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
+    respuesta = cliente.get(
+        f"{URL}/999999"
+    )
 
     assert respuesta.status_code == 404
     assert respuesta["Content-Type"] == TIPO_PROBLEMA
     assert respuesta.json()["status"] == 404
 
 
-# --------------------------------------------------------------- POST
+# ----------------------------------------------------------------
+# POST
+# ----------------------------------------------------------------
 
-def test_crear_categoria_201_con_location(cliente):
+def test_crear_categoria_201_con_location(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         cuerpo_valido(),
@@ -91,20 +154,41 @@ def test_crear_categoria_201_con_location(cliente):
     assert guardada.estado == "ACTIVA"
 
 
-def test_crear_categoria_y_consultarla_con_location(cliente):
+def test_crear_categoria_y_consultarla_con_location(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     creada = cliente.post(
         URL,
         cuerpo_valido(),
         format="json",
     )
 
-    consulta = cliente.get(creada["Location"])
+    consulta = cliente.get(
+        creada["Location"]
+    )
 
     assert consulta.status_code == 200
-    assert consulta.json()["nombre"] == "Productos congelados"
+    assert (
+        consulta.json()["nombre"]
+        == "Productos congelados"
+    )
 
 
-def test_crear_categoria_cuerpo_vacio_400(cliente):
+def test_crear_categoria_cuerpo_vacio_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         {},
@@ -116,7 +200,15 @@ def test_crear_categoria_cuerpo_vacio_400(cliente):
     assert "nombre" in respuesta.json()["errores"]
 
 
-def test_crear_categoria_nombre_vacio_400(cliente):
+def test_crear_categoria_nombre_vacio_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         cuerpo_valido(nombre=""),
@@ -128,9 +220,47 @@ def test_crear_categoria_nombre_vacio_400(cliente):
     assert "nombre" in respuesta.json()["errores"]
 
 
-# ---------------------------------------------------------------- PUT
+def test_crear_categoria_nombre_duplicado_409(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
 
-def test_actualizar_categoria_200(cliente):
+    categoria_existente = Categoria.objects.get(
+        id_categoria=1
+    )
+
+    respuesta = cliente.post(
+        URL,
+        cuerpo_valido(
+            nombre=categoria_existente.nombre
+        ),
+        format="json",
+    )
+
+    assert respuesta.status_code == 409
+    assert respuesta["Content-Type"].startswith(
+        TIPO_PROBLEMA
+    )
+    assert respuesta.data["status"] == 409
+
+
+# ----------------------------------------------------------------
+# PUT
+# ----------------------------------------------------------------
+
+def test_actualizar_categoria_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/6",
         {
@@ -142,7 +272,10 @@ def test_actualizar_categoria_200(cliente):
     )
 
     assert respuesta.status_code == 200
-    assert respuesta.json()["nombre"] == "Bebidas actualizadas"
+    assert (
+        respuesta.json()["nombre"]
+        == "Bebidas actualizadas"
+    )
     assert respuesta.json()["estado"] == "ACTIVA"
 
     guardada = Categoria.objects.get(pk=6)
@@ -151,7 +284,15 @@ def test_actualizar_categoria_200(cliente):
     assert guardada.estado == "ACTIVA"
 
 
-def test_actualizar_categoria_estado_invalido_400(cliente):
+def test_actualizar_categoria_estado_invalido_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/6",
         {
@@ -166,7 +307,15 @@ def test_actualizar_categoria_estado_invalido_400(cliente):
     assert "estado" in respuesta.json()["errores"]
 
 
-def test_actualizar_categoria_inexistente_404(cliente):
+def test_actualizar_categoria_inexistente_404(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/999999",
         {
@@ -180,29 +329,16 @@ def test_actualizar_categoria_inexistente_404(cliente):
     assert respuesta.status_code == 404
     assert respuesta["Content-Type"] == TIPO_PROBLEMA
 
-def test_crear_categoria_nombre_duplicado_409(
-    cliente,
-):
-    categoria_existente = Categoria.objects.get(
-        id_categoria=1
-    )
-
-    respuesta = cliente.post(
-        URL,
-        cuerpo_valido(
-            nombre=categoria_existente.nombre
-        ),
-        format="json",
-    )
-
-    assert respuesta.status_code == 409
-    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
-    assert respuesta.data["status"] == 409
-
 
 def test_actualizar_categoria_nombre_duplicado_409(
     cliente,
+    usuario_administrador,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     categoria_existente = Categoria.objects.get(
         id_categoria=1
     )
@@ -218,5 +354,37 @@ def test_actualizar_categoria_nombre_duplicado_409(
     )
 
     assert respuesta.status_code == 409
-    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
+    assert respuesta["Content-Type"].startswith(
+        TIPO_PROBLEMA
+    )
     assert respuesta.data["status"] == 409
+
+
+# ----------------------------------------------------------------
+# SEGURIDAD
+# ----------------------------------------------------------------
+
+def test_categorias_sin_token_401(
+    cliente,
+):
+    respuesta = cliente.get(URL)
+
+    assert respuesta.status_code == 401
+    assert respuesta["Content-Type"] == TIPO_PROBLEMA
+    assert respuesta.json()["status"] == 401
+
+
+def test_categorias_con_rol_no_autorizado_403(
+    cliente,
+    usuario_donante,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
+    respuesta = cliente.get(URL)
+
+    assert respuesta.status_code == 403
+    assert respuesta["Content-Type"] == TIPO_PROBLEMA
+    assert respuesta.json()["status"] == 403

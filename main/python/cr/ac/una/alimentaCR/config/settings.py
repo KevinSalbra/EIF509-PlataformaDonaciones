@@ -135,5 +135,14 @@ MAILERS = {
 }
 
 REST_FRAMEWORK = {
-      "EXCEPTION_HANDLER": "cr.ac.una.alimentaCR.presentation.exception_handler.manejador_global",
+    "EXCEPTION_HANDLER": (
+        "cr.ac.una.alimentaCR.presentation."
+        "exception_handler.manejador_global"
+    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        (
+            "cr.ac.una.alimentaCR.presentation."
+            "jwt_autenticacion.JWTAuthentication"
+        ),
+    ],
 }

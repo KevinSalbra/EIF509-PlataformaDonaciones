@@ -7,6 +7,7 @@ from .usuario_views import UsuarioDetalleView, UsuarioListaView
 from .views import VistaSalud
 from .organizacion_views import OrganizacionDetalleView,OrganizacionListaView
 from .categoria_views import CategoriaDetalleView,CategoriaListaView
+from .auth_views import LoginView
 
 urlpatterns = [
     path("salud", VistaSalud.as_view(), name="salud"),
@@ -29,4 +30,6 @@ urlpatterns = [
 
     path("categorias",CategoriaListaView.as_view(),name="categoria_lista"),
     path("categorias/<int:id_categoria>",CategoriaDetalleView.as_view(),name="categoria_detalle"),
+
+    path("auth/login", LoginView.as_view(), name="auth_login"),
 ]

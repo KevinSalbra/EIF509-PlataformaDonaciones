@@ -1,4 +1,4 @@
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 
 from ...data.models import Organizacion, Usuario
@@ -120,3 +120,17 @@ class UsuarioService:
                 f"{organizacion.id_organizacion} es de tipo "
                 f"{organizacion.tipo}."
             )
+        
+    def autenticar(self, correo: str, contrasena: str) -> Usuario:
+        usuario = self.usuario_repository.obtener_por_correo(correo)
+
+        if usuario is None:
+            return None
+
+        if usuario.estado != Usuario.Estado.ACTIVO:
+            return None
+
+        if not check_password(contrasena, usuario.contrasena):
+            return None
+
+        return usuario

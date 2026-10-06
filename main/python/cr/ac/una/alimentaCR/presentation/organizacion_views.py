@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .permisos import EsAdministrador
 from cr.ac.una.alimentaCR.business.services import OrganizacionService
 
 from .organizacion_serializers import (
@@ -14,6 +14,7 @@ from .organizacion_serializers import (
 from .listados import OrganizacionConsultaSerializer, listar_paginado
 
 class OrganizacionListaView(APIView):
+    permission_classes = [EsAdministrador]
     """
     GET  /api/v1/organizaciones  -> 200, lista de organizaciones
     POST /api/v1/organizaciones  -> 201 + Location | 400
@@ -57,6 +58,7 @@ class OrganizacionListaView(APIView):
 
 
 class OrganizacionDetalleView(APIView):
+    permission_classes = [EsAdministrador]
     """
     GET /api/v1/organizaciones/<id> -> 200 | 404
     PUT /api/v1/organizaciones/<id> -> 200 | 400, 404

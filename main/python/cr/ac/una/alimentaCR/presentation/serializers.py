@@ -24,8 +24,6 @@ class PublicarDonacionRequestSerializer(serializers.Serializer):
     DonacionService.
     """
 
-    id_organizacion = serializers.IntegerField(min_value=1)
-
     id_categoria = serializers.IntegerField(min_value=1)
 
     alimento = serializers.CharField(

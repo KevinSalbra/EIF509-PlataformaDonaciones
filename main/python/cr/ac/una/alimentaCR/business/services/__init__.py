@@ -4,6 +4,7 @@ from .solicitud_service import SolicitudService
 from .usuario_service import UsuarioService
 from .organizacion_service import OrganizacionService
 from .categoria_service import CategoriaService
+from .auth_service import AuthService
 
 __all__ = [
     "DonacionService",
@@ -12,4 +13,5 @@ __all__ = [
     "UsuarioService",
     "OrganizacionService",
     "CategoriaService",
+    "AuthService",
 ]

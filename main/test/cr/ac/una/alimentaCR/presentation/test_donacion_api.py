@@ -1,7 +1,8 @@
 import pytest
 from rest_framework.test import APIClient
 
-from cr.ac.una.alimentaCR.data.models import Donacion
+from cr.ac.una.alimentaCR.business.services import AuthService
+from cr.ac.una.alimentaCR.data.models import Donacion, Usuario
 
 
 pytestmark = [
@@ -19,9 +20,31 @@ def cliente():
     return APIClient()
 
 
+@pytest.fixture
+def usuario_donante():
+    return Usuario.objects.get(pk=2)
+
+
+@pytest.fixture
+def usuario_administrador():
+    return Usuario.objects.get(pk=1)
+
+
+@pytest.fixture
+def usuario_beneficiario():
+    return Usuario.objects.get(pk=4)
+
+
+def autenticar_cliente(cliente, usuario):
+    token = AuthService.generar_token(usuario)
+
+    cliente.credentials(
+        HTTP_AUTHORIZATION=f"Bearer {token}"
+    )
+
+
 def cuerpo_valido(**cambios):
     datos = {
-        "id_organizacion": 2,
         "id_categoria": 1,
         "alimento": "Tomates",
         "descripcion": "Tomates frescos para donar",
@@ -72,8 +95,14 @@ def test_obtener_donacion_inexistente_404(cliente):
 
 def test_publicar_donacion_201_con_location(
     cliente,
+    usuario_donante,
     monkeypatch,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     monkeypatch.setattr(
         "cr.ac.una.alimentaCR.data.repositories."
         "bitacora_repository.BitacoraRepository.registrar",
@@ -103,8 +132,14 @@ def test_publicar_donacion_201_con_location(
 
 def test_publicar_donacion_y_consultarla_con_location(
     cliente,
+    usuario_donante,
     monkeypatch,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     monkeypatch.setattr(
         "cr.ac.una.alimentaCR.data.repositories."
         "bitacora_repository.BitacoraRepository.registrar",
@@ -130,7 +165,15 @@ def test_publicar_donacion_y_consultarla_con_location(
     )
 
 
-def test_publicar_donacion_cuerpo_vacio_400(cliente):
+def test_publicar_donacion_cuerpo_vacio_400(
+    cliente,
+    usuario_donante,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     respuesta = cliente.post(
         URL_PUBLICAR,
         {},
@@ -143,7 +186,15 @@ def test_publicar_donacion_cuerpo_vacio_400(cliente):
     assert "errores" in respuesta.data
 
 
-def test_publicar_donacion_unidad_invalida_400(cliente):
+def test_publicar_donacion_unidad_invalida_400(
+    cliente,
+    usuario_donante,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     respuesta = cliente.post(
         URL_PUBLICAR,
         cuerpo_valido(
@@ -157,25 +208,15 @@ def test_publicar_donacion_unidad_invalida_400(cliente):
     assert "unidad_medida" in respuesta.data["errores"]
 
 
-def test_publicar_donacion_organizacion_inexistente_404(
-    cliente,
-):
-    respuesta = cliente.post(
-        URL_PUBLICAR,
-        cuerpo_valido(
-            id_organizacion=999999
-        ),
-        format="json",
-    )
-
-    assert respuesta.status_code == 404
-    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
-    assert respuesta.data["status"] == 404
-
-
 def test_publicar_donacion_categoria_inexistente_404(
     cliente,
+    usuario_donante,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     respuesta = cliente.post(
         URL_PUBLICAR,
         cuerpo_valido(
@@ -191,7 +232,13 @@ def test_publicar_donacion_categoria_inexistente_404(
 
 def test_publicar_donacion_categoria_inactiva_422(
     cliente,
+    usuario_donante,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     respuesta = cliente.post(
         URL_PUBLICAR,
         cuerpo_valido(
@@ -207,7 +254,13 @@ def test_publicar_donacion_categoria_inactiva_422(
 
 def test_publicar_donacion_cantidad_invalida_422(
     cliente,
+    usuario_donante,
 ):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
+    )
+
     respuesta = cliente.post(
         URL_PUBLICAR,
         cuerpo_valido(
@@ -221,17 +274,59 @@ def test_publicar_donacion_cantidad_invalida_422(
     assert respuesta.data["status"] == 422
 
 
-def test_publicar_donacion_organizacion_no_autorizada_422(
+# ----------------------------------------------------------------
+# SEGURIDAD POST /publicar
+# ----------------------------------------------------------------
+
+def test_publicar_donacion_sin_token_401(
     cliente,
 ):
     respuesta = cliente.post(
         URL_PUBLICAR,
-        cuerpo_valido(
-            id_organizacion=4
-        ),
+        cuerpo_valido(),
         format="json",
     )
 
-    assert respuesta.status_code == 422
+    assert respuesta.status_code == 401
     assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
-    assert respuesta.data["status"] == 422
+    assert respuesta.data["status"] == 401
+
+
+def test_publicar_donacion_administrador_403(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
+    respuesta = cliente.post(
+        URL_PUBLICAR,
+        cuerpo_valido(),
+        format="json",
+    )
+
+    assert respuesta.status_code == 403
+    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
+    assert respuesta.data["status"] == 403
+
+
+def test_publicar_donacion_beneficiario_403(
+    cliente,
+    usuario_beneficiario,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_beneficiario,
+    )
+
+    respuesta = cliente.post(
+        URL_PUBLICAR,
+        cuerpo_valido(),
+        format="json",
+    )
+
+    assert respuesta.status_code == 403
+    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
+    assert respuesta.data["status"] == 403

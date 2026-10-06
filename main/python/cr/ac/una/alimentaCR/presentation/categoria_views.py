@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .permisos import EsAdministrador
 from cr.ac.una.alimentaCR.business.services import CategoriaService
 
 from .categoria_serializers import (
@@ -14,6 +14,7 @@ from .categoria_serializers import (
 from .listados import CategoriaConsultaSerializer, listar_paginado
 
 class CategoriaListaView(APIView):
+    permission_classes = [EsAdministrador]
     """
     GET  /api/v1/categorias -> 200, lista de categorias
     POST /api/v1/categorias -> 201 + Location | 400
@@ -53,6 +54,7 @@ class CategoriaListaView(APIView):
 
 
 class CategoriaDetalleView(APIView):
+    permission_classes = [EsAdministrador]
     """
     GET /api/v1/categorias/<id> -> 200 | 404
     PUT /api/v1/categorias/<id> -> 200 | 400, 404

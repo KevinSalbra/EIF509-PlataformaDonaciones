@@ -48,3 +48,9 @@ class UsuarioResponseSerializer(serializers.Serializer):
     rol = serializers.CharField()
     estado = serializers.CharField()
     fecha_registro = serializers.DateTimeField()
+
+class LoginRequestSerializer(serializers.Serializer):
+    """DTO de entrada para iniciar sesion."""
+
+    correo = serializers.EmailField(max_length=150)
+    contrasena = serializers.CharField(max_length=128,write_only=True)

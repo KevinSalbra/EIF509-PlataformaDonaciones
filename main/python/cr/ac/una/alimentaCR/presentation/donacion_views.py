@@ -2,7 +2,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .permisos import EsRepresentanteDonante
 from cr.ac.una.alimentaCR.business.services import DonacionService
 
 from .serializers import (
@@ -54,6 +54,8 @@ class PublicarDonacionView(APIView):
     Las excepciones de negocio las traduce el manejador global.
     """
 
+    permission_classes = [EsRepresentanteDonante]
+
     def post(self, request):
         entrada = PublicarDonacionRequestSerializer(
             data=request.data
@@ -62,7 +64,7 @@ class PublicarDonacionView(APIView):
         datos = entrada.validated_data
 
         donacion = DonacionService().publicar_donacion(
-            id_organizacion=datos["id_organizacion"],
+            id_organizacion=request.user.organizacion_id,
             id_categoria=datos["id_categoria"],
             alimento=datos["alimento"],
             descripcion=datos.get("descripcion"),

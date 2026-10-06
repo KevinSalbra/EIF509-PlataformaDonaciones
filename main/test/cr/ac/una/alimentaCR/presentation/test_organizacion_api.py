@@ -6,12 +6,18 @@ Datos de prueba usados:
 - Organizacion 2: DONANTE, APROBADA
 - Organizacion 4: BENEFICIARIA, APROBADA
 - Organizacion 6: BENEFICIARIA, PENDIENTE
+- Usuario 1: ADMINISTRADOR
+- Usuario 2: REPRESENTANTE_DONANTE
 """
 
 import pytest
 from rest_framework.test import APIClient
 
-from cr.ac.una.alimentaCR.data.models import Organizacion
+from cr.ac.una.alimentaCR.business.services import AuthService
+from cr.ac.una.alimentaCR.data.models import (
+    Organizacion,
+    Usuario,
+)
 
 
 pytestmark = [
@@ -28,6 +34,24 @@ def cliente():
     return APIClient()
 
 
+@pytest.fixture
+def usuario_administrador():
+    return Usuario.objects.get(pk=1)
+
+
+@pytest.fixture
+def usuario_donante():
+    return Usuario.objects.get(pk=2)
+
+
+def autenticar_cliente(cliente, usuario):
+    token = AuthService.generar_token(usuario)
+
+    cliente.credentials(
+        HTTP_AUTHORIZATION=f"Bearer {token}"
+    )
+
+
 def cuerpo_valido(**cambios):
     datos = {
         "nombre": "Banco de Alimentos Prueba",
@@ -37,20 +61,40 @@ def cuerpo_valido(**cambios):
         "direccion": "Heredia, Costa Rica",
         "telefono": "2200-9999",
     }
+
     datos.update(cambios)
+
     return datos
 
 
-# ---------------------------------------------------------------- GET
+# ----------------------------------------------------------------
+# GET
+# ----------------------------------------------------------------
 
-def test_listar_organizaciones_200(cliente):
+def test_listar_organizaciones_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
     assert respuesta.json()["count"] >= 6
 
 
-def test_obtener_organizacion_200(cliente):
+def test_obtener_organizacion_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.get(f"{URL}/2")
 
     assert respuesta.status_code == 200
@@ -59,17 +103,37 @@ def test_obtener_organizacion_200(cliente):
     assert respuesta.json()["estado"] == "APROBADA"
 
 
-def test_obtener_organizacion_inexistente_404(cliente):
-    respuesta = cliente.get(f"{URL}/999999")
+def test_obtener_organizacion_inexistente_404(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
+    respuesta = cliente.get(
+        f"{URL}/999999"
+    )
 
     assert respuesta.status_code == 404
     assert respuesta["Content-Type"] == TIPO_PROBLEMA
     assert respuesta.json()["status"] == 404
 
 
-# --------------------------------------------------------------- POST
+# ----------------------------------------------------------------
+# POST
+# ----------------------------------------------------------------
 
-def test_crear_organizacion_201_con_location(cliente):
+def test_crear_organizacion_201_con_location(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         cuerpo_valido(),
@@ -94,17 +158,30 @@ def test_crear_organizacion_201_con_location(cliente):
     )
 
     assert guardada.estado == "PENDIENTE"
-    assert guardada.cedula_juridica == "3-101-999999"
+    assert (
+        guardada.cedula_juridica
+        == "3-101-999999"
+    )
 
 
-def test_crear_organizacion_y_consultarla_con_location(cliente):
+def test_crear_organizacion_y_consultarla_con_location(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     creada = cliente.post(
         URL,
         cuerpo_valido(),
         format="json",
     )
 
-    consulta = cliente.get(creada["Location"])
+    consulta = cliente.get(
+        creada["Location"]
+    )
 
     assert consulta.status_code == 200
     assert (
@@ -113,7 +190,15 @@ def test_crear_organizacion_y_consultarla_con_location(cliente):
     )
 
 
-def test_crear_organizacion_cuerpo_vacio_400(cliente):
+def test_crear_organizacion_cuerpo_vacio_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         {},
@@ -135,7 +220,15 @@ def test_crear_organizacion_cuerpo_vacio_400(cliente):
         assert campo in errores
 
 
-def test_crear_organizacion_tipo_invalido_400(cliente):
+def test_crear_organizacion_tipo_invalido_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.post(
         URL,
         cuerpo_valido(tipo="OTRO"),
@@ -147,9 +240,49 @@ def test_crear_organizacion_tipo_invalido_400(cliente):
     assert "tipo" in respuesta.json()["errores"]
 
 
-# ---------------------------------------------------------------- PUT
+def test_crear_organizacion_cedula_juridica_duplicada_409(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
 
-def test_actualizar_organizacion_200(cliente):
+    organizacion_existente = Organizacion.objects.get(
+        id_organizacion=1
+    )
+
+    respuesta = cliente.post(
+        URL,
+        cuerpo_valido(
+            cedula_juridica=(
+                organizacion_existente.cedula_juridica
+            )
+        ),
+        format="json",
+    )
+
+    assert respuesta.status_code == 409
+    assert respuesta["Content-Type"].startswith(
+        TIPO_PROBLEMA
+    )
+    assert respuesta.data["status"] == 409
+
+
+# ----------------------------------------------------------------
+# PUT
+# ----------------------------------------------------------------
+
+def test_actualizar_organizacion_200(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/6",
         {
@@ -164,18 +297,36 @@ def test_actualizar_organizacion_200(cliente):
     )
 
     assert respuesta.status_code == 200
-    assert respuesta.json()["nombre"] == (
-        "Asociacion Ayuda Actualizada"
+
+    assert (
+        respuesta.json()["nombre"]
+        == "Asociacion Ayuda Actualizada"
     )
-    assert respuesta.json()["estado"] == "APROBADA"
+
+    assert (
+        respuesta.json()["estado"]
+        == "APROBADA"
+    )
 
     guardada = Organizacion.objects.get(pk=6)
 
-    assert guardada.nombre == "Asociacion Ayuda Actualizada"
+    assert (
+        guardada.nombre
+        == "Asociacion Ayuda Actualizada"
+    )
+
     assert guardada.estado == "APROBADA"
 
 
-def test_actualizar_organizacion_estado_invalido_400(cliente):
+def test_actualizar_organizacion_estado_invalido_400(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/6",
         {
@@ -192,7 +343,15 @@ def test_actualizar_organizacion_estado_invalido_400(cliente):
     assert "estado" in respuesta.json()["errores"]
 
 
-def test_actualizar_organizacion_inexistente_404(cliente):
+def test_actualizar_organizacion_inexistente_404(
+    cliente,
+    usuario_administrador,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_administrador,
+    )
+
     respuesta = cliente.put(
         f"{URL}/999999",
         {
@@ -208,21 +367,32 @@ def test_actualizar_organizacion_inexistente_404(cliente):
     assert respuesta.status_code == 404
     assert respuesta["Content-Type"] == TIPO_PROBLEMA
 
-def test_crear_organizacion_cedula_juridica_duplicada_409(
+
+# ----------------------------------------------------------------
+# SEGURIDAD
+# ----------------------------------------------------------------
+
+def test_organizaciones_sin_token_401(
     cliente,
 ):
-    organizacion_existente = Organizacion.objects.get(
-        id_organizacion=1
+    respuesta = cliente.get(URL)
+
+    assert respuesta.status_code == 401
+    assert respuesta["Content-Type"] == TIPO_PROBLEMA
+    assert respuesta.json()["status"] == 401
+
+
+def test_organizaciones_con_rol_no_autorizado_403(
+    cliente,
+    usuario_donante,
+):
+    autenticar_cliente(
+        cliente,
+        usuario_donante,
     )
 
-    respuesta = cliente.post(
-        URL,
-        cuerpo_valido(
-            cedula_juridica=organizacion_existente.cedula_juridica
-        ),
-        format="json",
-    )
+    respuesta = cliente.get(URL)
 
-    assert respuesta.status_code == 409
-    assert respuesta["Content-Type"].startswith(TIPO_PROBLEMA)
-    assert respuesta.data["status"] == 409
+    assert respuesta.status_code == 403
+    assert respuesta["Content-Type"] == TIPO_PROBLEMA
+    assert respuesta.json()["status"] == 403
