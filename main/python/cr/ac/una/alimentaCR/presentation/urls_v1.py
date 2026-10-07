@@ -8,6 +8,7 @@ from .views import VistaSalud
 from .organizacion_views import OrganizacionDetalleView,OrganizacionListaView
 from .categoria_views import CategoriaDetalleView,CategoriaListaView
 from .auth_views import LoginView
+from .auth_views import LoginView
 
 urlpatterns = [
     path("salud", VistaSalud.as_view(), name="salud"),

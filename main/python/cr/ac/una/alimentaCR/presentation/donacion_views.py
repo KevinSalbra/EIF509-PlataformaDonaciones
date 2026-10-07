@@ -1,26 +1,51 @@
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .permisos import EsRepresentanteDonante
+
 from cr.ac.una.alimentaCR.business.services import DonacionService
 
+from .listados import (
+    DonacionConsultaSerializer,
+    listar_paginado,
+    respuesta_paginada,
+)
+from .permisos import EsRepresentanteDonante
 from .serializers import (
     DonacionResponseSerializer,
     PublicarDonacionRequestSerializer,
 )
 
-from .listados import DonacionConsultaSerializer, listar_paginado
 
 class DonacionListaView(APIView):
     """
     GET /api/v1/donaciones -> 200, lista de donaciones
     """
 
+    @extend_schema(
+        operation_id="listar_donaciones",
+        summary="Listar donaciones",
+        description=(
+            "Obtiene la lista de donaciones aplicando los filtros, "
+            "ordenamiento y parametros de consulta disponibles."
+        ),
+        parameters=[DonacionConsultaSerializer],
+        responses={
+            200: respuesta_paginada(
+                "DonacionPaginadaResponse",
+                DonacionResponseSerializer,
+            ),
+        },
+        auth=[],
+    )
     def get(self, request):
-        consulta = DonacionConsultaSerializer(data=request.query_params)
+        consulta = DonacionConsultaSerializer(
+            data=request.query_params
+        )
         consulta.is_valid(raise_exception=True)
         datos = consulta.validated_data
+
         coleccion = DonacionService().listar(
             estado=datos.get("estado"),
             id_categoria=datos.get("id_categoria"),
@@ -28,13 +53,28 @@ class DonacionListaView(APIView):
             por_vencer_en_dias=datos.get("por_vencer_en_dias"),
             orden=consulta.orden(),
         )
-        return listar_paginado(request, coleccion, DonacionResponseSerializer)
+
+        return listar_paginado(
+            request,
+            coleccion,
+            DonacionResponseSerializer,
+        )
+
 
 class DonacionDetalleView(APIView):
     """
     GET /api/v1/donaciones/<id> -> 200 | 404
     """
 
+    @extend_schema(
+        operation_id="obtener_donacion",
+        summary="Obtener donacion",
+        description=(
+            "Obtiene una donacion mediante su identificador."
+        ),
+        responses={200: DonacionResponseSerializer},
+        auth=[],
+    )
     def get(self, request, id_donacion: int):
         donacion = DonacionService().obtener(
             id_donacion
@@ -56,6 +96,16 @@ class PublicarDonacionView(APIView):
 
     permission_classes = [EsRepresentanteDonante]
 
+    @extend_schema(
+        operation_id="publicar_donacion",
+        summary="Publicar donacion",
+        description=(
+            "Publica una nueva donacion para la organizacion "
+            "donante del usuario autenticado."
+        ),
+        request=PublicarDonacionRequestSerializer,
+        responses={201: DonacionResponseSerializer},
+    )
     def post(self, request):
         entrada = PublicarDonacionRequestSerializer(
             data=request.data

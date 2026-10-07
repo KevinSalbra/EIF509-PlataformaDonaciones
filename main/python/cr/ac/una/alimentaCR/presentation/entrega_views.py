@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -10,6 +11,7 @@ from .entrega_serializers import (
 from .listados import (
     EntregaConsultaSerializer,
     listar_paginado,
+    respuesta_paginada,
 )
 from .permisos import EsRepresentanteOrganizacion
 
@@ -22,6 +24,22 @@ class EntregaListaView(APIView):
     una solicitud (POST /api/v1/solicitudes/<id>/aceptar).
     """
 
+    @extend_schema(
+        operation_id="listar_entregas",
+        summary="Listar entregas",
+        description=(
+            "Obtiene la lista de entregas aplicando los parametros "
+            "de consulta disponibles."
+        ),
+        parameters=[EntregaConsultaSerializer],
+        responses={
+            200: respuesta_paginada(
+                "EntregaPaginadaResponse",
+                EntregaResponseSerializer,
+            ),
+        },
+        auth=[],
+    )
     def get(self, request):
         consulta = EntregaConsultaSerializer(
             data=request.query_params
@@ -54,6 +72,15 @@ class EntregaDetalleView(APIView):
 
         return []
 
+    @extend_schema(
+        operation_id="obtener_entrega",
+        summary="Obtener entrega",
+        description=(
+            "Obtiene una entrega mediante su identificador."
+        ),
+        responses={200: EntregaResponseSerializer},
+        auth=[],
+    )
     def get(self, request, id_entrega: int):
         entrega = EntregaService().obtener_entrega(
             id_entrega
@@ -63,6 +90,16 @@ class EntregaDetalleView(APIView):
             EntregaResponseSerializer(entrega).data
         )
 
+    @extend_schema(
+        operation_id="coordinar_entrega",
+        summary="Coordinar entrega",
+        description=(
+            "Actualiza los datos de coordinacion de una entrega. "
+            "La identidad del usuario se obtiene del token JWT."
+        ),
+        request=CoordinarEntregaRequestSerializer,
+        responses={200: EntregaResponseSerializer},
+    )
     def patch(self, request, id_entrega: int):
         entrada = CoordinarEntregaRequestSerializer(
             data=request.data

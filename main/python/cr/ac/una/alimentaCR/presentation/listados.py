@@ -3,6 +3,7 @@ Utilidades comunes para las colecciones de la API: paginacion con
 metadatos, orden por parametro y validacion de los parametros de
 consulta (filtros).
 """
+from drf_spectacular.utils import inline_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -44,6 +45,33 @@ def listar_paginado(request, queryset, serializer_class):
     )
 
 
+def respuesta_paginada(nombre, serializer_class):
+    """
+    Define para OpenAPI la estructura de una respuesta paginada.
+
+    No modifica la paginacion real de la API; solamente permite que
+    Swagger documente correctamente sus metadatos y resultados.
+    """
+    return inline_serializer(
+        name=nombre,
+        fields={
+            "count": serializers.IntegerField(),
+            "page": serializers.IntegerField(),
+            "page_size": serializers.IntegerField(),
+            "total_pages": serializers.IntegerField(),
+            "next": serializers.URLField(
+                allow_null=True,
+            ),
+            "previous": serializers.URLField(
+                allow_null=True,
+            ),
+            "results": serializer_class(
+                many=True,
+            ),
+        },
+    )
+
+
 class ConsultaListadoSerializer(serializers.Serializer):
     """
     Base de los parametros de consulta de una coleccion. Cada recurso
@@ -76,7 +104,12 @@ class ConsultaListadoSerializer(serializers.Serializer):
 
 
 class UsuarioConsultaSerializer(ConsultaListadoSerializer):
-    campos_orden = ("id_usuario", "nombre", "correo", "fecha_registro")
+    campos_orden = (
+        "id_usuario",
+        "nombre",
+        "correo",
+        "fecha_registro",
+    )
 
 
 class OrganizacionConsultaSerializer(ConsultaListadoSerializer):
@@ -90,22 +123,48 @@ class OrganizacionConsultaSerializer(ConsultaListadoSerializer):
 
 
 class CategoriaConsultaSerializer(ConsultaListadoSerializer):
-    campos_orden = ("id_categoria", "nombre", "estado")
+    campos_orden = (
+        "id_categoria",
+        "nombre",
+        "estado",
+    )
 
 
 class EntregaConsultaSerializer(ConsultaListadoSerializer):
-    campos_orden = ("id_entrega", "fecha_creacion", "fecha_acordada", "estado")
+    campos_orden = (
+        "id_entrega",
+        "fecha_creacion",
+        "fecha_acordada",
+        "estado",
+    )
 
 
 class SolicitudConsultaSerializer(ConsultaListadoSerializer):
-    campos_orden = ("id_solicitud", "fecha_solicitud", "estado")
+    campos_orden = (
+        "id_solicitud",
+        "fecha_solicitud",
+        "estado",
+    )
 
     estado = serializers.ChoiceField(
-        choices=["PENDIENTE", "ACEPTADA", "RECHAZADA", "CANCELADA"],
+        choices=[
+            "PENDIENTE",
+            "ACEPTADA",
+            "RECHAZADA",
+            "CANCELADA",
+        ],
         required=False,
     )
-    id_organizacion = serializers.IntegerField(min_value=1, required=False)
-    id_donacion = serializers.IntegerField(min_value=1, required=False)
+
+    id_organizacion = serializers.IntegerField(
+        min_value=1,
+        required=False,
+    )
+
+    id_donacion = serializers.IntegerField(
+        min_value=1,
+        required=False,
+    )
 
 
 class DonacionConsultaSerializer(ConsultaListadoSerializer):
@@ -119,11 +178,28 @@ class DonacionConsultaSerializer(ConsultaListadoSerializer):
     )
 
     estado = serializers.ChoiceField(
-        choices=["DISPONIBLE", "ASIGNADA", "ENTREGADA", "CANCELADA", "VENCIDA"],
+        choices=[
+            "DISPONIBLE",
+            "ASIGNADA",
+            "ENTREGADA",
+            "CANCELADA",
+            "VENCIDA",
+        ],
         required=False,
     )
-    id_categoria = serializers.IntegerField(min_value=1, required=False)
-    id_organizacion = serializers.IntegerField(min_value=1, required=False)
+
+    id_categoria = serializers.IntegerField(
+        min_value=1,
+        required=False,
+    )
+
+    id_organizacion = serializers.IntegerField(
+        min_value=1,
+        required=False,
+    )
+
     por_vencer_en_dias = serializers.IntegerField(
-        min_value=1, max_value=365, required=False
+        min_value=1,
+        max_value=365,
+        required=False,
     )

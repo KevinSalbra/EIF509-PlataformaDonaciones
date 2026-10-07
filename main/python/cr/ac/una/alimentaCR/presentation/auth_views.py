@@ -1,4 +1,6 @@
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,6 +11,25 @@ from .usuario_serializers import LoginRequestSerializer
 
 class LoginView(APIView):
 
+    @extend_schema(
+        operation_id="iniciar_sesion",
+        summary="Iniciar sesion",
+        description=(
+            "Autentica un usuario mediante correo y contrasena "
+            "y retorna un token JWT."
+        ),
+        request=LoginRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="LoginResponse",
+                fields={
+                    "access_token": serializers.CharField(),
+                    "token_type": serializers.CharField(),
+                },
+            ),
+        },
+        auth=[],
+    )
     def post(self, request):
         serializer = LoginRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -19,9 +40,8 @@ class LoginView(APIView):
         )
 
         if usuario is None:
-            return Response(
-                {"detail": "Credenciales invalidas."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            raise AuthenticationFailed(
+                "Credenciales invalidas."
             )
 
         token = AuthService.generar_token(usuario)

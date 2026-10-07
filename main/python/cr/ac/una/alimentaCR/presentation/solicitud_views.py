@@ -1,4 +1,5 @@
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,14 +7,18 @@ from rest_framework.views import APIView
 from cr.ac.una.alimentaCR.business.services import SolicitudService
 
 from .entrega_serializers import EntregaResponseSerializer
-from .solicitud_serializers import (
-    CrearSolicitudRequestSerializer,
-    SolicitudResponseSerializer,
+from .listados import (
+    SolicitudConsultaSerializer,
+    listar_paginado,
+    respuesta_paginada,
 )
-from .listados import SolicitudConsultaSerializer, listar_paginado
 from .permisos import (
     EsRepresentanteBeneficiaria,
     EsRepresentanteDonante,
+)
+from .solicitud_serializers import (
+    CrearSolicitudRequestSerializer,
+    SolicitudResponseSerializer,
 )
 
 
@@ -31,6 +36,22 @@ class SolicitudListaView(APIView):
 
         return []
 
+    @extend_schema(
+        operation_id="listar_solicitudes",
+        summary="Listar solicitudes",
+        description=(
+            "Obtiene la lista de solicitudes aplicando los filtros, "
+            "ordenamiento y parametros de consulta disponibles."
+        ),
+        parameters=[SolicitudConsultaSerializer],
+        responses={
+            200: respuesta_paginada(
+                "SolicitudPaginadaResponse",
+                SolicitudResponseSerializer,
+            ),
+        },
+        auth=[],
+    )
     def get(self, request):
         consulta = SolicitudConsultaSerializer(
             data=request.query_params
@@ -51,6 +72,17 @@ class SolicitudListaView(APIView):
             SolicitudResponseSerializer,
         )
 
+    @extend_schema(
+        operation_id="crear_solicitud",
+        summary="Crear solicitud",
+        description=(
+            "Crea una solicitud sobre una donacion. "
+            "La identidad del usuario beneficiario se obtiene "
+            "del token JWT."
+        ),
+        request=CrearSolicitudRequestSerializer,
+        responses={201: SolicitudResponseSerializer},
+    )
     def post(self, request):
         entrada = CrearSolicitudRequestSerializer(
             data=request.data
@@ -94,6 +126,15 @@ class SolicitudDetalleView(APIView):
 
         return []
 
+    @extend_schema(
+        operation_id="obtener_solicitud",
+        summary="Obtener solicitud",
+        description=(
+            "Obtiene una solicitud mediante su identificador."
+        ),
+        responses={200: SolicitudResponseSerializer},
+        auth=[],
+    )
     def get(self, request, id_solicitud: int):
         solicitud = SolicitudService().obtener_solicitud(
             id_solicitud
@@ -103,6 +144,16 @@ class SolicitudDetalleView(APIView):
             SolicitudResponseSerializer(solicitud).data
         )
 
+    @extend_schema(
+        operation_id="cancelar_solicitud",
+        summary="Cancelar solicitud",
+        description=(
+            "Cancela una solicitud pendiente. La identidad del "
+            "usuario se obtiene del token JWT."
+        ),
+        request=None,
+        responses={204: None},
+    )
     def delete(self, request, id_solicitud: int):
         SolicitudService().cancelar_solicitud(
             id_solicitud,
@@ -125,6 +176,17 @@ class AceptarSolicitudView(APIView):
 
     permission_classes = [EsRepresentanteDonante]
 
+    @extend_schema(
+        operation_id="aceptar_solicitud",
+        summary="Aceptar solicitud",
+        description=(
+            "Acepta una solicitud y genera la entrega correspondiente. "
+            "La identidad del representante donante se obtiene "
+            "del token JWT."
+        ),
+        request=None,
+        responses={201: EntregaResponseSerializer},
+    )
     def post(self, request, id_solicitud: int):
         entrega = SolicitudService().aceptar_solicitud(
             id_solicitud,
