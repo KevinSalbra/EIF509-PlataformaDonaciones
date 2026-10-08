@@ -465,3 +465,4 @@ Finalmente, la integración de OpenAPI y Swagger UI hizo posible explorar el con
 
 \> ****Alcance:**** este documento describe las implementaciones del Laboratorio 5. Los detalles completos del modelo de datos, las decisiones de persistencia y los patrones de negocio implementados en laboratorios anteriores se conservan en sus respectivos documentos técnicos.
 
+
