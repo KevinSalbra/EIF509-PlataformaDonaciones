@@ -66,3 +66,7 @@ class Usuario(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    @property
+    def is_authenticated(self):
+        return True

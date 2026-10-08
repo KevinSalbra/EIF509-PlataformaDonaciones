@@ -31,6 +31,8 @@ class UsuarioNoAutorizadoError(ErrorNegocio):
 class OrganizacionNoExisteError(ErrorNegocio):
     """No existe una Organizacion con el id indicado."""
 
+class CedulaJuridicaDuplicadaError(ErrorNegocio):
+    """Ya existe una Organizacion con esa cedula juridica."""
 
 class OrganizacionNoAutorizadaError(ErrorNegocio):
     """La Organizacion no es donante o no se encuentra aprobada."""
@@ -39,6 +41,8 @@ class OrganizacionNoAutorizadaError(ErrorNegocio):
 class CategoriaNoExisteError(ErrorNegocio):
     """No existe una Categoria con el id indicado."""
 
+class NombreCategoriaDuplicadoError(ErrorNegocio):
+    """Ya existe una Categoria registrada con ese nombre."""
 
 class CategoriaInactivaError(ErrorNegocio):
     """La Categoria seleccionada no se encuentra activa."""
@@ -50,3 +54,38 @@ class CantidadInvalidaError(ErrorNegocio):
 
 class FechaLimiteInvalidaError(ErrorNegocio):
     """La fecha limite de retiro debe ser posterior a la fecha actual."""
+
+
+
+class UsuarioNoExisteError(ErrorNegocio):
+    """No existe un Usuario con el id indicado."""
+
+
+class CorreoDuplicadoError(ErrorNegocio):
+    """Ya existe un Usuario registrado con ese correo."""
+
+
+class RolOrganizacionIncompatibleError(ErrorNegocio):
+    """El rol del Usuario no corresponde al tipo de su Organizacion."""
+
+
+
+class DonacionNoExisteError(ErrorNegocio):
+    """No existe una Donacion con el id indicado."""
+
+
+class SolicitudDuplicadaError(ErrorNegocio):
+    """La organizacion ya tiene una Solicitud pendiente para esa Donacion."""
+
+
+
+class EntregaNoExisteError(ErrorNegocio):
+    """No existe una Entrega con el id indicado."""
+
+
+class EntregaNoPendienteError(ErrorNegocio):
+    """La Entrega ya no esta pendiente y no admite cambios."""
+
+
+class FechaAcordadaInvalidaError(ErrorNegocio):
+    """La fecha acordada de la Entrega es anterior a la fecha actual."""

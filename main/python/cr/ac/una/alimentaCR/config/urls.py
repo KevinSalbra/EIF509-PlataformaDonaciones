@@ -1,28 +1,36 @@
 """
 URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path
 
-from cr.ac.una.alimentaCR.presentation.views import VistaSalud
-from cr.ac.una.alimentaCR.presentation.solicitud_views import AceptarSolicitudView 
-from cr.ac.una.alimentaCR.presentation.publicar_donacion_view import ( PublicarDonacionView,)
+from django.contrib import admin
+from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+)
+
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/salud', VistaSalud.as_view(), name='salud'),
-    path('api/solicitudes/<int:id_solicitud>/aceptar', AceptarSolicitudView.as_view(), name='aceptar_solicitud'),
-    path('api/donaciones/publicar', PublicarDonacionView.as_view(), name='publicar_donacion'),
+    path("admin/", admin.site.urls),
+
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(),
+        name="schema",
+    ),
+
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(
+            url_name="schema"
+        ),
+        name="swagger-ui",
+    ),
+
+    path(
+        "api/v1/",
+        include(
+            "cr.ac.una.alimentaCR.presentation.urls_v1"
+        ),
+    ),
 ]
