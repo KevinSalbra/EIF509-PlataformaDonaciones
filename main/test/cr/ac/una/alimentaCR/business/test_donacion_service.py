@@ -1,6 +1,9 @@
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock
+from datetime import date, timedelta
+from dataclasses import FrozenInstanceError
+from cr.ac.una.alimentaCR.business.dto import DonacionDTO
 
 import pytest
 from django.utils import timezone
@@ -118,8 +121,17 @@ def test_publicar_donacion_exitosamente():
     assert resultado.alimento == "Peras"
     assert resultado.cantidad == Decimal("12.50")
     assert resultado.estado == Donacion.Estado.DISPONIBLE
-    assert resultado.organizacion_donante == organizacion
-    assert resultado.categoria == categoria
+    assert resultado.organizacion_donante_id == organizacion.id_organizacion
+
+    # Verificar que el servicio devuelve un DTO
+    assert isinstance(resultado, DonacionDTO)
+
+    # Verificar el calculo de dias restantes
+    assert resultado.dias_restantes == 7
+
+    # Verificar que el DTO es inmutable
+    with pytest.raises(FrozenInstanceError):
+        resultado.estado = Donacion.Estado.ASIGNADA
 
     organizacion_repository.obtener_por_id.assert_called_once_with(2)
     categoria_repository.obtener_por_id.assert_called_once_with(1)
@@ -365,3 +377,24 @@ def test_publicar_donacion_falla_si_fecha_limite_no_es_futura():
 
     donacion_repository.guardar.assert_not_called()
     bitacora_repository.registrar.assert_not_called()
+
+
+# ============================================================
+# 9. Calculo de dias restantes
+# ============================================================
+
+@pytest.mark.parametrize(
+    "fecha_actual, fecha_limite, esperado",
+    [
+        (date(2026, 10, 11), date(2026, 10, 18), 7),
+        (date(2026, 10, 11), date(2026, 10, 12), 1),
+        (date(2026, 10, 11), date(2026, 10, 11), 0),
+        (date(2026, 10, 11), date(2026, 10, 10), 0),
+    ],
+)
+def test_calcular_dias_restantes(fecha_actual, fecha_limite, esperado):
+    resultado = DonacionService.calcular_dias_restantes(
+        fecha_limite_retiro=fecha_limite,
+        fecha_actual=fecha_actual,
+    )
+    assert resultado == esperado

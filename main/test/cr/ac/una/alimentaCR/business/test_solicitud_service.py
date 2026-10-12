@@ -1,7 +1,11 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
+from dataclasses import FrozenInstanceError
+from unittest.mock import patch
+
+from cr.ac.una.alimentaCR.business.dto import EntregaDTO
 from cr.ac.una.alimentaCR.business.exceptions import (
     DonacionNoDisponibleError,
     SolicitudNoExisteError,
@@ -73,6 +77,15 @@ def crear_servicio(
     bitacora_repository = Mock()
 
     solicitud_repository.obtener_por_id.return_value = solicitud
+
+    # Simula la consulta bloqueada con select_for_update().
+    if solicitud is not None:
+        donacion_repository.obtener_por_id_para_actualizar.return_value = (
+            solicitud.donacion
+        )
+    else:
+        donacion_repository.obtener_por_id_para_actualizar.return_value = None
+
     usuario_repository.obtener_por_id.return_value = usuario
 
     solicitud_repository.obtener_pendientes_por_donacion.return_value = (
@@ -187,7 +200,17 @@ def test_aceptar_solicitud_exitosamente():
     assert entrega.confirmacion_donante is False
     assert entrega.confirmacion_beneficiario is False
 
-    solicitud_repository.obtener_por_id.assert_called_once_with(1)
+    # La solicitud se consulta antes y despues del bloqueo.
+    assert solicitud_repository.obtener_por_id.call_args_list == [
+        call(1),
+        call(1),
+    ]
+
+    # Verifica que se solicito bloquear la donacion.
+    donacion_repository.obtener_por_id_para_actualizar.assert_called_once_with(
+        1
+    )
+
     usuario_repository.obtener_por_id.assert_called_once_with(1)
 
     solicitud_repository.obtener_pendientes_por_donacion.assert_called_once_with(
@@ -231,6 +254,7 @@ def test_aceptar_solicitud_falla_si_no_existe():
         999
     )
 
+    donacion_repository.obtener_por_id_para_actualizar.assert_not_called()
     usuario_repository.obtener_por_id.assert_not_called()
     donacion_repository.guardar.assert_not_called()
     entrega_repository.guardar.assert_not_called()
@@ -265,6 +289,9 @@ def test_aceptar_solicitud_falla_si_no_esta_pendiente():
             id_usuario=1,
         )
 
+    donacion_repository.obtener_por_id_para_actualizar.assert_called_once_with(
+        1
+    )
     usuario_repository.obtener_por_id.assert_not_called()
     donacion_repository.guardar.assert_not_called()
     entrega_repository.guardar.assert_not_called()
@@ -307,6 +334,9 @@ def test_aceptar_solicitud_falla_si_usuario_no_es_propietario():
             id_usuario=1,
         )
 
+    donacion_repository.obtener_por_id_para_actualizar.assert_called_once_with(
+        1
+    )
     usuario_repository.obtener_por_id.assert_called_once_with(
         1
     )
@@ -346,6 +376,9 @@ def test_aceptar_solicitud_falla_si_usuario_no_existe():
             id_usuario=999,
         )
 
+    donacion_repository.obtener_por_id_para_actualizar.assert_called_once_with(
+        1
+    )
     usuario_repository.obtener_por_id.assert_called_once_with(
         999
     )
@@ -386,7 +419,65 @@ def test_aceptar_solicitud_falla_si_donacion_no_disponible():
             id_usuario=1,
         )
 
+    donacion_repository.obtener_por_id_para_actualizar.assert_called_once_with(
+        1
+    )
     solicitud_repository.obtener_pendientes_por_donacion.assert_not_called()
     donacion_repository.guardar.assert_not_called()
     entrega_repository.guardar.assert_not_called()
     bitacora_repository.registrar.assert_not_called()
+
+
+def test_aceptar_solicitud_devuelve_dto_inmutable():
+    donacion = crear_donacion_disponible()
+    solicitud = crear_solicitud(
+        id_solicitud=1,
+        donacion=donacion,
+    )
+    usuario = crear_usuario_autorizado()
+
+    (
+        servicio,
+        solicitud_repository,
+        donacion_repository,
+        entrega_repository,
+        usuario_repository,
+        bitacora_repository,
+    ) = crear_servicio(
+        solicitud=solicitud,
+        usuario=usuario,
+        solicitudes_pendientes=[solicitud],
+    )
+
+    # Evitar abrir una transaccion real en esta prueba unitaria.
+    with patch.object(
+        servicio,
+        "_aceptar_solicitud_transaccional",
+        wraps=lambda id_solicitud, id_usuario: (
+            ejecutar_proceso_transaccional(
+                servicio,
+                id_solicitud,
+                id_usuario,
+            )
+        ),
+    ):
+        resultado = servicio.aceptar_solicitud(
+            id_solicitud=1,
+            id_usuario=1,
+        )
+
+    # El contrato publico devuelve un DTO, no una entidad ORM.
+    assert isinstance(resultado, EntregaDTO)
+    assert not isinstance(resultado, Entrega)
+
+    assert resultado.id_entrega == 100
+    assert resultado.solicitud_id == 1
+    assert resultado.estado == Entrega.Estado.PENDIENTE
+    assert resultado.confirmacion_donante is False
+    assert resultado.confirmacion_beneficiario is False
+
+    # Comprobar la inmutabilidad.
+    with pytest.raises(FrozenInstanceError):
+        resultado.estado = "MODIFICADO"
+
+    bitacora_repository.registrar.assert_called_once()

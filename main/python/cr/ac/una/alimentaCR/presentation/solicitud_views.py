@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .listados import PaginacionEstandar
 
 from cr.ac.una.alimentaCR.business.services import SolicitudService
 
@@ -59,17 +60,23 @@ class SolicitudListaView(APIView):
         consulta.is_valid(raise_exception=True)
         datos = consulta.validated_data
 
-        coleccion = SolicitudService().listar_solicitudes(
+        servicio = SolicitudService()
+        paginador = PaginacionEstandar()
+
+        solicitudes = servicio.listar_solicitudes_paginadas(
+            paginador=paginador,
+            request=request,
             estado=datos.get("estado"),
             id_organizacion=datos.get("id_organizacion"),
             id_donacion=datos.get("id_donacion"),
             orden=consulta.orden(),
         )
 
-        return listar_paginado(
-            request,
-            coleccion,
-            SolicitudResponseSerializer,
+        return paginador.get_paginated_response(
+            SolicitudResponseSerializer(
+                solicitudes,
+                many=True,
+            ).data
         )
 
     @extend_schema(
