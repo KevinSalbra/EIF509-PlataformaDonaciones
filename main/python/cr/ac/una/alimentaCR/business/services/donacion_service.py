@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from ..dto import DonacionDTO
 from ...data.models import Donacion
 from ...data.repositories import (
     BitacoraRepository,
@@ -64,6 +65,18 @@ class DonacionService:
             bitacora_repository or BitacoraRepository()
         )
 
+    @staticmethod
+    def calcular_dias_restantes(fecha_limite_retiro, fecha_actual=None) -> int:
+        """
+        Calcula los dias restantes para retirar una donacion.
+
+        Si la fecha limite ya paso, retorna cero.
+        """
+        if fecha_actual is None:
+            fecha_actual = timezone.localdate()
+
+        return max(0, (fecha_limite_retiro - fecha_actual).days)
+
     def listar(
         self,
         estado=None,
@@ -112,7 +125,7 @@ class DonacionService:
         cantidad,
         unidad_medida: str,
         fecha_limite_retiro,
-    ) -> Donacion:
+    ) -> DonacionDTO:
         """
         Publica una nueva Donacion despues de validar las reglas
         de negocio definidas para este proceso.
@@ -182,7 +195,29 @@ class DonacionService:
 
         self._registrar_evento_bitacora(donacion)
 
-        return donacion
+        return self._convertir_a_dto(donacion)
+    
+    
+    def _convertir_a_dto(self, donacion: Donacion) -> DonacionDTO:
+        """
+        Convierte una entidad ORM Donacion en un DTO inmutable.
+        Evita exponer directamente el modelo Django.
+        """
+        return DonacionDTO(
+        id_donacion=donacion.id_donacion,
+        organizacion_donante_id=donacion.organizacion_donante_id,
+        categoria_id=donacion.categoria_id,
+        alimento=donacion.alimento,
+        descripcion=donacion.descripcion,
+        cantidad=donacion.cantidad,
+        unidad_medida=donacion.unidad_medida,
+        fecha_publicacion=donacion.fecha_publicacion,
+        fecha_limite_retiro=donacion.fecha_limite_retiro,
+        estado=donacion.estado,
+        dias_restantes=self.calcular_dias_restantes(
+            donacion.fecha_limite_retiro
+        ),
+    )
 
     def _registrar_evento_bitacora(
         self,

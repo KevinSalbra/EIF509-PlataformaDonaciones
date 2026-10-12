@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
+from ..dto import EntregaDTO, SolicitudDTO
 from ...data.models import Donacion, Entrega, Organizacion, Solicitud
 from ...data.repositories import (
     BitacoraRepository,
@@ -65,7 +66,7 @@ class SolicitudService:
         self.usuario_repository = usuario_repository or UsuarioRepository()
         self.bitacora_repository = bitacora_repository or BitacoraRepository()
 
-    def aceptar_solicitud(self, id_solicitud: int, id_usuario: int) -> Entrega:
+    def aceptar_solicitud(self, id_solicitud: int, id_usuario: int) -> EntregaDTO:
         """
         Punto de entrada publico del proceso.
 
@@ -78,25 +79,84 @@ class SolicitudService:
         negocio ya confirmados en Postgres no se revierten. Esta es
         una decision de diseno explicita de persistencia poliglota
         (ver ADR-002), no un descuido.
+
+        Devuelve un DTO inmutable para evitar exponer directamente
+        la entidad ORM Entrega a la capa de presentacion.
         """
         entrega = self._aceptar_solicitud_transaccional(id_solicitud, id_usuario)
         self._registrar_evento_bitacora(entrega, id_usuario)
-        return entrega
+        return self._convertir_entrega_a_dto(entrega)
+    
+    def _convertir_entrega_a_dto(
+        self, entrega: Entrega
+    ) -> EntregaDTO:
+        """
+        Convierte la entidad ORM Entrega en un DTO inmutable.
+        """
+        return EntregaDTO(
+            id_entrega=entrega.id_entrega,
+            solicitud_id=entrega.solicitud_id,
+            fecha_creacion=entrega.fecha_creacion,
+            confirmacion_donante=entrega.confirmacion_donante,
+            confirmacion_beneficiario=entrega.confirmacion_beneficiario,
+            estado=entrega.estado,
+        )
+    
+    def _convertir_solicitud_a_dto(
+        self, solicitud: Solicitud
+    ) -> SolicitudDTO:
+        """
+        Convierte la entidad ORM Solicitud en un DTO inmutable.
+        """
+        return SolicitudDTO(
+            id_solicitud=solicitud.id_solicitud,
+            donacion_id=solicitud.donacion_id,
+            organizacion_beneficiaria_id=solicitud.organizacion_beneficiaria_id,
+            fecha_solicitud=solicitud.fecha_solicitud,
+            estado=solicitud.estado,
+            observacion=solicitud.observacion,
+        )
 
-    @transaction.atomic
+    @transaction.atomic 
     def _aceptar_solicitud_transaccional(
         self, id_solicitud: int, id_usuario: int
     ) -> Entrega:
-        solicitud = self.solicitud_repository.obtener_por_id(id_solicitud)
+
+        # 1. Identificar la solicitud y su donacion.
+        solicitud_inicial = self.solicitud_repository.obtener_por_id(
+            id_solicitud
+        )
+
+        if solicitud_inicial is None:
+            raise SolicitudNoExisteError(
+                f"No existe una solicitud con id {id_solicitud}."
+            )
+
+        # 2. Bloquear la donacion antes de validar estados.
+        donacion = self.donacion_repository.obtener_por_id_para_actualizar(
+            solicitud_inicial.donacion_id
+        )
+
+        if donacion is None:
+            raise DonacionNoExisteError(
+                f"No existe una donacion con id "
+                f"{solicitud_inicial.donacion_id}."
+            )
+
+        # 3. Volver a consultar la solicitud despues del bloqueo.
+        # Esto evita utilizar un estado leido antes de esperar.
+        solicitud = self.solicitud_repository.obtener_por_id(
+            id_solicitud
+        )
+
         if solicitud is None:
             raise SolicitudNoExisteError(
                 f"No existe una solicitud con id {id_solicitud}."
             )
 
-        estado_actual = obtener_estado(solicitud.estado)
-        estado_actual.aceptar(solicitud)
+        # 4. Validar las reglas de negocio.
+        obtener_estado(solicitud.estado).aceptar(solicitud)
 
-        donacion = solicitud.donacion
         self._validar_propietario(donacion, id_usuario)
 
         if donacion.estado != Donacion.Estado.DISPONIBLE:
@@ -105,13 +165,22 @@ class SolicitudService:
                 f"(estado actual: {donacion.estado})."
             )
 
-        self._rechazar_otras_solicitudes_pendientes(donacion, solicitud)
+        # Utilizar la instancia bloqueada de la donacion.
+        solicitud.donacion = donacion
 
+        # 5. Rechazar las otras solicitudes pendientes.
+        self._rechazar_otras_solicitudes_pendientes(
+            donacion, solicitud
+        )
+
+        # 6. Guardar la solicitud aceptada.
         self.solicitud_repository.guardar(solicitud)
 
+        # 7. Asignar la donacion.
         donacion.estado = Donacion.Estado.ASIGNADA
         self.donacion_repository.guardar(donacion)
 
+        # 8. Crear la entrega.
         entrega = Entrega(
             solicitud=solicitud,
             fecha_creacion=timezone.now(),
@@ -119,6 +188,7 @@ class SolicitudService:
             confirmacion_beneficiario=False,
             estado=Entrega.Estado.PENDIENTE,
         )
+
         return self.entrega_repository.guardar(entrega)
 
     def _validar_propietario(self, donacion: Donacion, id_usuario: int) -> None:
@@ -170,6 +240,7 @@ class SolicitudService:
         id_organizacion=None,
         id_donacion=None,
         orden=None,
+        como_dto=False, 
     ):
         """
         Devuelve un QuerySet filtrado con Specifications y ordenado.
@@ -187,18 +258,60 @@ class SolicitudService:
             self.solicitud_repository.obtener_todos()
         )
         return consulta.order_by(*(orden or ["id_solicitud"]), "pk")
+    
+    def listar_solicitudes_paginadas(
+        self,
+        paginador,
+        request,
+        estado=None,
+        id_organizacion=None,
+        id_donacion=None,
+        orden=None,
+    ):
+        """
+        Consulta, pagina y convierte las solicitudes a DTO.
+        """
+        consulta = self.listar_solicitudes(
+            estado=estado,
+            id_organizacion=id_organizacion,
+            id_donacion=id_donacion,
+            orden=orden,
+        )
 
-    def obtener_solicitud(self, id_solicitud: int) -> Solicitud:
+        pagina = paginador.paginate_queryset(consulta, request)
+
+        return [
+            self._convertir_solicitud_a_dto(solicitud)
+            for solicitud in pagina
+        ]
+
+    def _obtener_solicitud_entidad(
+        self, id_solicitud: int
+    ) -> Solicitud:
+        """
+        Obtiene la entidad ORM para operaciones internas del negocio.
+        """
         solicitud = self.solicitud_repository.obtener_por_id(id_solicitud)
+
         if solicitud is None:
             raise SolicitudNoExisteError(
                 f"No existe una solicitud con id {id_solicitud}."
             )
+
         return solicitud
+
+    def obtener_solicitud(
+        self, id_solicitud: int
+    ) -> SolicitudDTO:
+        """
+        Obtiene una solicitud y devuelve un DTO inmutable.
+        """
+        solicitud = self._obtener_solicitud_entidad(id_solicitud)
+        return self._convertir_solicitud_a_dto(solicitud)
 
     def crear_solicitud(
         self, id_donacion: int, id_usuario: int, observacion: str = None
-    ) -> Solicitud:
+    ) -> SolicitudDTO:
         """
         Proceso 3: una organizacion beneficiaria solicita una donacion.
 
@@ -255,9 +368,10 @@ class SolicitudService:
             estado=Solicitud.Estado.PENDIENTE,
             observacion=observacion,
         )
-        return self.solicitud_repository.guardar(solicitud)
+        solicitud_guardada = self.solicitud_repository.guardar(solicitud)
+        return self._convertir_solicitud_a_dto(solicitud_guardada)
 
-    def cancelar_solicitud(self, id_solicitud: int, id_usuario: int) -> Solicitud:
+    def cancelar_solicitud(self, id_solicitud: int, id_usuario: int) -> SolicitudDTO:
         """
         Proceso 4: cancelar una solicitud pendiente.
 
@@ -267,7 +381,7 @@ class SolicitudService:
         3. Solo se cancelan solicitudes PENDIENTES (lo valida el
            patron State).
         """
-        solicitud = self.obtener_solicitud(id_solicitud)
+        solicitud = self._obtener_solicitud_entidad(id_solicitud)
         usuario = self._obtener_usuario(id_usuario)
 
         if usuario.organizacion_id != solicitud.organizacion_beneficiaria_id:
@@ -277,7 +391,8 @@ class SolicitudService:
             )
 
         obtener_estado(solicitud.estado).cancelar(solicitud)
-        return self.solicitud_repository.guardar(solicitud)
+        solicitud_guardada = self.solicitud_repository.guardar(solicitud)
+        return self._convertir_solicitud_a_dto(solicitud_guardada)
 
     def _obtener_usuario(self, id_usuario: int):
         usuario = self.usuario_repository.obtener_por_id(id_usuario)

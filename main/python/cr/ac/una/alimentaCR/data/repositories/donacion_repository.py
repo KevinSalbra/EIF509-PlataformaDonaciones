@@ -5,6 +5,18 @@ from .base_repository import BaseRepository
 class DonacionRepository(BaseRepository):
  
     model = Donacion
+
+    def obtener_por_id_para_actualizar(self, id_donacion):
+        """
+        Bloquea la donacion hasta finalizar la transaccion.
+        Debe ejecutarse dentro de transaction.atomic.
+        """
+        return (
+            self.model.objects
+            .select_for_update()
+            .filter(pk=id_donacion)
+            .first()
+        )
  
     def obtener_disponibles(self):
         return self.model.objects.filter(

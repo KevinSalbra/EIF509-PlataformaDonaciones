@@ -36,10 +36,19 @@ class PaginacionEstandar(PageNumberPagination):
         )
 
 
-def listar_paginado(request, queryset, serializer_class):
-    """Pagina el queryset y devuelve la respuesta con sus metadatos."""
+def listar_paginado(
+    request,
+    queryset,
+    serializer_class,
+    convertir=None,
+):
+    """Pagina la consulta y devuelve la respuesta con sus metadatos."""
     paginador = PaginacionEstandar()
     pagina = paginador.paginate_queryset(queryset, request)
+
+    if convertir is not None:
+        pagina = [convertir(objeto) for objeto in pagina]
+
     return paginador.get_paginated_response(
         serializer_class(pagina, many=True).data
     )
