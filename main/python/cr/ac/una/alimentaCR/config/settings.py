@@ -142,6 +142,28 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+# Modulo administrativo (MVC): sesion y CSRF
+
+# Sesion firmada en cookie: no requiere tabla django_session, ya que
+# el esquema lo gestiona Flyway y no las migraciones de Django.
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# Detras del proxy HTTPS de la plataforma (Render/Railway).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="",
+    cast=lambda value: [
+        origen.strip()
+        for origen in value.split(",")
+        if origen.strip()
+    ],
+)
 
 # Email
 
