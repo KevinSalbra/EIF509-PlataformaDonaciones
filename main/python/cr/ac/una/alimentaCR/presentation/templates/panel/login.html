@@ -1,0 +1,11 @@
+{% extends "panel/base.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<h1>Iniciar sesión</h1>
+<form class="tarjeta" method="post" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  {% include "panel/_campos.html" %}
+  <div class="botones"><button class="btn" type="submit">Entrar</button></div>
+</form>
+{% endblock %}

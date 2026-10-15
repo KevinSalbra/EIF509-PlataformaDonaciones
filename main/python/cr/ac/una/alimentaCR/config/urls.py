@@ -26,7 +26,12 @@ urlpatterns = [
         ),
         name="swagger-ui",
     ),
-
+    path(
+        "panel/",
+        include(
+            "cr.ac.una.alimentaCR.presentation.web.urls"
+        ),
+    ),
     path(
         "api/v1/",
         include(
