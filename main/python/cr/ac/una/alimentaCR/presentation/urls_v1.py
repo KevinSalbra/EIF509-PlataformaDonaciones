@@ -6,7 +6,7 @@ from .solicitud_views import AceptarSolicitudView, SolicitudDetalleView, Solicit
 from .usuario_views import UsuarioDetalleView, UsuarioListaView
 from .views import VistaSalud
 from .organizacion_views import OrganizacionDetalleView,OrganizacionListaView
-from .categoria_views import CategoriaDetalleView,CategoriaListaView
+from .categoria_views import CategoriaActivasView,CategoriaDetalleView,CategoriaListaView
 from .auth_views import LoginView
 from .auth_views import LoginView
 
@@ -30,6 +30,7 @@ urlpatterns = [
     path("organizaciones/<int:id_organizacion>", OrganizacionDetalleView.as_view(),name="organizacion_detalle"),
 
     path("categorias",CategoriaListaView.as_view(),name="categoria_lista"),
+    path("categorias/activas",CategoriaActivasView.as_view(),name="categoria_activas"),
     path("categorias/<int:id_categoria>",CategoriaDetalleView.as_view(),name="categoria_detalle"),
 
     path("auth/login", LoginView.as_view(), name="auth_login"),
