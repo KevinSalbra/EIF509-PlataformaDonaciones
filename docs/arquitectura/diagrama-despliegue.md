@@ -170,6 +170,7 @@ La base de datos `alimentacr_bitacora` contiene la colección `eventos`, utiliza
 |---|---|
 | SPA React | https://alimentacr-spa.onrender.com |
 | API Django | https://alimentacr-api.onrender.com |
+## El enlace anterior no tiene vista, por lo que al visitarlo da error 404
 | Swagger UI | https://alimentacr-api.onrender.com/api/docs/ |
 | Panel MVC | https://alimentacr-api.onrender.com/panel/ |
 
