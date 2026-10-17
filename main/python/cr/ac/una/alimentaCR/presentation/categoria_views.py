@@ -1,9 +1,9 @@
 from django.urls import reverse
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from cr.ac.una.alimentaCR.business.services import CategoriaService
 
 from .categoria_serializers import (
@@ -142,4 +142,44 @@ class CategoriaDetalleView(APIView):
 
         return Response(
             CategoriaResponseSerializer(categoria).data
+        )
+    
+class CategoriaActivasView(APIView):
+    """
+    GET /api/v1/categorias/activas -> 200, categorias activas
+
+    Lectura para cualquier usuario autenticado: los representantes
+    necesitan elegir una categoria al publicar una donacion.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="listar_categorias_activas",
+        summary="Listar categorias activas",
+        description=(
+            "Devuelve las categorias activas (id y nombre) para "
+            "usuarios autenticados de cualquier rol."
+        ),
+        responses={
+            200: inline_serializer(
+                name="CategoriaActivaResponse",
+                many=True,
+                fields={
+                    "id_categoria": serializers.IntegerField(),
+                    "nombre": serializers.CharField(),
+                },
+            ),
+        },
+    )
+    def get(self, request):
+        categorias = CategoriaService().listar_activas()
+        return Response(
+            [
+                {
+                    "id_categoria": c.id_categoria,
+                    "nombre": c.nombre,
+                }
+                for c in categorias
+            ]
         )

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "corsheaders",
     "drf_spectacular",
     "cr.ac.una.alimentaCR.data.apps.DataConfig",
     "cr.ac.una.alimentaCR.presentation.apps.PresentationConfig",
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -158,6 +160,18 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default="",
+    cast=lambda value: [
+        origen.strip()
+        for origen in value.split(",")
+        if origen.strip()
+    ],
+)
+
+# CORS: origenes de la SPA autorizados a llamar a la API (con esquema,
+# sin barra final). Se configura por variable de entorno.
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173",
     cast=lambda value: [
         origen.strip()
         for origen in value.split(",")
