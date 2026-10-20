@@ -1,5 +1,7 @@
 import logging
 from http import HTTPStatus
+from django.http import JsonResponse
+from django.views import defaults as vistas_django
 
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -88,3 +90,50 @@ def manejador_global(exc, context):
         "Ocurrio un error interno. Intente nuevamente mas tarde.",
         request,
     )
+
+    
+
+# --- Errores fuera de DRF: rutas inexistentes y fallos no capturados ---
+#
+# DRF solo maneja los errores que ocurren dentro de una vista de la API.
+# Una ruta que no existe, o un fallo en otra capa, llega a Django, que
+# responde con una pagina HTML. Estos manejadores devuelven Problem
+# Details para las rutas /api/ y conservan la respuesta de Django para
+# el resto del sitio (por ejemplo el panel /panel/).
+
+PREFIJO_API = "/api/"
+
+
+def _problema_http(codigo, detalle, ruta):
+    return JsonResponse(
+        {
+            "type": "about:blank",
+            "title": HTTPStatus(codigo).phrase,
+            "status": codigo,
+            "detail": detalle,
+            "instance": ruta,
+        },
+        status=codigo,
+        content_type=TIPO_PROBLEMA,
+        json_dumps_params={"ensure_ascii": False},
+    )
+
+
+def manejador_404(request, exception, *args, **kwargs):
+    if request.path.startswith(PREFIJO_API):
+        return _problema_http(
+            status.HTTP_404_NOT_FOUND,
+            "El recurso solicitado no existe.",
+            request.path,
+        )
+    return vistas_django.page_not_found(request, exception, *args, **kwargs)
+
+
+def manejador_500(request, *args, **kwargs):
+    if request.path.startswith(PREFIJO_API):
+        return _problema_http(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Ocurrio un error interno. Intente nuevamente mas tarde.",
+            request.path,
+        )
+    return vistas_django.server_error(request, *args, **kwargs)
