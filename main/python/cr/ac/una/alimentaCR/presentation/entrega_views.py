@@ -22,7 +22,7 @@ class EntregaListaView(APIView):
     GET /api/v1/entregas -> 200, lista de entregas
 
     Las entregas no se crean por POST: las genera el proceso de aceptar
-    una solicitud (POST /api/v1/solicitudes/<id>/aceptar).
+    una solicitud (POST /api/v1/solicitudes/<id>/entrega).
 
     Requiere autenticacion: cada usuario ve solo las entregas de su
     organizacion (el administrador ve todas).

@@ -27,13 +27,13 @@ from .solicitud_serializers import (
 
 class SolicitudListaView(APIView):
     """
-    GET  /api/v1/solicitudes -> 200, lista de solicitudes
-    POST /api/v1/solicitudes -> 201 + Location | 400, 404, 409, 422
+    POST /api/v1/solicitudes/<id_solicitud>/entrega
+    -> 201 + Location
 
-    El POST expone el Proceso 3 (solicitar una donacion).
-
-    El GET requiere autenticacion: cada usuario ve solo las solicitudes
-    de su organizacion (el administrador ve todas).
+    Aceptar una solicitud crea su entrega, por eso el proceso se
+    modela como la creacion del subrecurso "entrega" de la solicitud.
+    Solo un representante donante autenticado puede ejecutar
+    el proceso. La identidad del usuario se obtiene del JWT.
     """
 
     def get_permissions(self):

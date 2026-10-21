@@ -102,7 +102,7 @@ Los recursos se exponen con métodos HTTP acordes con las operaciones admitidas 
 
 | Donaciones | GET | `/api/v1/donaciones/{id}` | Consultar una donación. |
 
-| Donaciones | POST | `/api/v1/donaciones/publicar` | Publicar una donación. |
+| Donaciones | POST | `/api/v1/donaciones` | Publicar una donación. |
 
 | Solicitudes | GET | `/api/v1/solicitudes` | Listar solicitudes. |
 
@@ -112,7 +112,7 @@ Los recursos se exponen con métodos HTTP acordes con las operaciones admitidas 
 
 | Solicitudes | DELETE | `/api/v1/solicitudes/{id}` | Cancelar una solicitud pendiente. |
 
-| Solicitudes | POST | `/api/v1/solicitudes/{id}/aceptar` | Aceptar una solicitud y generar una entrega. |
+| Solicitudes | POST | `/api/v1/solicitudes/{id}/entrega` | Aceptar una solicitud y generar una entrega. |
 
 | Entregas | GET | `/api/v1/entregas` | Listar entregas. |
 
@@ -132,7 +132,7 @@ En las rutas anteriores, `{id}` representa el identificador del recurso correspo
 
 ****Cancelar una solicitud.**** `DELETE /api/v1/solicitudes/{id}` ejecuta una cancelación lógica: la solicitud cambia a estado ****CANCELADA**** cuando las reglas lo permiten, sin eliminar físicamente el registro. La operación exitosa responde con ****204 No Content****.
 
-****Aceptar una solicitud.**** `POST /api/v1/solicitudes/{id}/aceptar` permite al representante donante autorizado aceptar una solicitud y generar la entrega correspondiente. Este endpoint reutiliza el proceso transaccional desarrollado previamente: la aceptación y sus cambios relacionados deben respetar las reglas de consistencia del dominio. La entrega generada se devuelve con ****201 Created**** y ****Location****.
+****Aceptar una solicitud.**** `POST /api/v1/solicitudes/{id}/entrega` permite al representante donante autorizado aceptar una solicitud y generar la entrega correspondiente. Este endpoint reutiliza el proceso transaccional desarrollado previamente: la aceptación y sus cambios relacionados deben respetar las reglas de consistencia del dominio. La entrega generada se devuelve con ****201 Created**** y ****Location****.
 
 ****Coordinar una entrega.**** `PATCH /api/v1/entregas/{id}` permite actualizar datos de coordinación mediante `EntregaService`, sujeto a las validaciones y permisos correspondientes. Las entregas no se crean mediante un `POST /entregas` independiente: surgen del proceso de aceptación de solicitudes.
 

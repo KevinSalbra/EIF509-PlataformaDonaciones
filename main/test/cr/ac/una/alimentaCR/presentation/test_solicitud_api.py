@@ -474,7 +474,7 @@ def test_aceptar_solicitud_inexistente_404(
     )
 
     respuesta = cliente.post(
-        f"{URL}/999999/aceptar",
+        f"{URL}/999999/entrega",
         {},
         format="json",
     )
@@ -493,7 +493,7 @@ def test_aceptar_solicitud_no_pendiente_409(
     )
 
     respuesta = cliente.post(
-        f"{URL}/3/aceptar",
+        f"{URL}/3/entrega",
         {},
         format="json",
     )
@@ -509,7 +509,7 @@ def test_aceptar_solicitud_sin_token_401(
     cliente,
 ):
     respuesta = cliente.post(
-        f"{URL}/1/aceptar",
+        f"{URL}/1/entrega",
         {},
         format="json",
     )
@@ -528,7 +528,7 @@ def test_aceptar_solicitud_beneficiario_403(
     )
 
     respuesta = cliente.post(
-        f"{URL}/1/aceptar",
+        f"{URL}/1/entrega",
         {},
         format="json",
     )
@@ -547,7 +547,7 @@ def test_aceptar_solicitud_administrador_403(
     )
 
     respuesta = cliente.post(
-        f"{URL}/1/aceptar",
+        f"{URL}/1/entrega",
         {},
         format="json",
     )

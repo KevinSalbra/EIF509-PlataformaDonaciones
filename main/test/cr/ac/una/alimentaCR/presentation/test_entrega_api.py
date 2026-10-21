@@ -437,7 +437,7 @@ def test_aceptar_solicitud_201_con_location_hacia_la_entrega(
     )
 
     respuesta = cliente.post(
-        "/api/v1/solicitudes/1/aceptar",
+        "/api/v1/solicitudes/1/entrega",
         {},
         format="json",
     )
