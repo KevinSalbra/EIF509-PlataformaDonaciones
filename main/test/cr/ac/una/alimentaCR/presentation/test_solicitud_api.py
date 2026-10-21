@@ -67,14 +67,16 @@ def autenticar_cliente(cliente, usuario):
 # GET
 # ----------------------------------------------------------------
 
-def test_listar_solicitudes_200(cliente):
+def test_listar_solicitudes_200(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
     assert respuesta.json()["count"] >= 6
 
 
-def test_obtener_solicitud_200(cliente):
+def test_obtener_solicitud_200(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(f"{URL}/1")
 
     assert respuesta.status_code == 200
@@ -87,7 +89,8 @@ def test_obtener_solicitud_200(cliente):
     assert cuerpo["estado"] == "PENDIENTE"
 
 
-def test_obtener_solicitud_inexistente_404(cliente):
+def test_obtener_solicitud_inexistente_404(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(f"{URL}/999999")
 
     assert respuesta.status_code == 404

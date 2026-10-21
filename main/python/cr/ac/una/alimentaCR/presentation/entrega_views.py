@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,7 +14,7 @@ from .listados import (
     listar_paginado,
     respuesta_paginada,
 )
-from .permisos import EsRepresentanteOrganizacion
+from .permisos import EsRepresentanteOrganizacion, organizacion_de_alcance
 
 
 class EntregaListaView(APIView):
@@ -22,7 +23,12 @@ class EntregaListaView(APIView):
 
     Las entregas no se crean por POST: las genera el proceso de aceptar
     una solicitud (POST /api/v1/solicitudes/<id>/aceptar).
+
+    Requiere autenticacion: cada usuario ve solo las entregas de su
+    organizacion (el administrador ve todas).
     """
+
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         operation_id="listar_entregas",
@@ -38,7 +44,6 @@ class EntregaListaView(APIView):
                 EntregaResponseSerializer,
             ),
         },
-        auth=[],
     )
     def get(self, request):
         consulta = EntregaConsultaSerializer(
@@ -47,7 +52,8 @@ class EntregaListaView(APIView):
         consulta.is_valid(raise_exception=True)
 
         coleccion = EntregaService().listar_entregas(
-            orden=consulta.orden()
+            orden=consulta.orden(),
+            visible_para_organizacion=organizacion_de_alcance(request),
         )
 
         return listar_paginado(
@@ -62,6 +68,9 @@ class EntregaDetalleView(APIView):
     GET   /api/v1/entregas/<id> -> 200 | 404
     PATCH /api/v1/entregas/<id> -> 200 | 400, 403, 404, 409, 422
 
+    El GET requiere autenticacion y responde 404 si la entrega no
+    pertenece a la organizacion del usuario (el administrador ve todas).
+
     El PATCH expone el Proceso 5: coordinar la entrega.
     La identidad del usuario se obtiene del JWT.
     """
@@ -70,7 +79,7 @@ class EntregaDetalleView(APIView):
         if self.request.method == "PATCH":
             return [EsRepresentanteOrganizacion()]
 
-        return []
+        return [IsAuthenticated()]
 
     @extend_schema(
         operation_id="obtener_entrega",
@@ -79,11 +88,11 @@ class EntregaDetalleView(APIView):
             "Obtiene una entrega mediante su identificador."
         ),
         responses={200: EntregaResponseSerializer},
-        auth=[],
     )
     def get(self, request, id_entrega: int):
         entrega = EntregaService().obtener_entrega(
-            id_entrega
+            id_entrega,
+            visible_para_organizacion=organizacion_de_alcance(request),
         )
 
         return Response(

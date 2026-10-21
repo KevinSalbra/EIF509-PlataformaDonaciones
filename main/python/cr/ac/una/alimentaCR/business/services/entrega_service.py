@@ -36,14 +36,32 @@ class EntregaService:
         self.entrega_repository = entrega_repository or EntregaRepository()
         self.usuario_repository = usuario_repository or UsuarioRepository()
 
-    def listar_entregas(self, orden=None):
-        return self.entrega_repository.obtener_todos().order_by(
-            *(orden or ["id_entrega"]), "pk"
-        )
+    def listar_entregas(self, orden=None, visible_para_organizacion=None):
+        """
+        Si se indica `visible_para_organizacion`, solo devuelve las
+        entregas en las que participa esa organizacion.
+        """
+        if visible_para_organizacion is None:
+            base = self.entrega_repository.obtener_todos()
+        else:
+            base = self.entrega_repository.visibles_para_organizacion(
+                visible_para_organizacion
+            )
+        return base.order_by(*(orden or ["id_entrega"]), "pk")
 
-    def obtener_entrega(self, id_entrega: int) -> Entrega:
+    def obtener_entrega(
+        self, id_entrega: int, visible_para_organizacion=None
+    ) -> Entrega:
+        """
+        Si se indica `visible_para_organizacion` y la entrega no le
+        corresponde, se responde como si no existiera.
+        """
         entrega = self.entrega_repository.obtener_por_id(id_entrega)
-        if entrega is None:
+        if entrega is None or (
+            visible_para_organizacion is not None
+            and visible_para_organizacion
+            not in self._organizaciones_involucradas(entrega)
+        ):
             raise EntregaNoExisteError(
                 f"No existe una entrega con id {id_entrega}."
             )
@@ -83,12 +101,18 @@ class EntregaService:
                 setattr(entrega, campo, cambios[campo])
         return self.entrega_repository.guardar(entrega)
 
-    def _validar_organizacion_involucrada(self, entrega, usuario) -> None:
+    @staticmethod
+    def _organizaciones_involucradas(entrega) -> set:
         solicitud = entrega.solicitud
-        organizaciones_involucradas = {
+        return {
             solicitud.organizacion_beneficiaria_id,
             solicitud.donacion.organizacion_donante_id,
         }
+
+    def _validar_organizacion_involucrada(self, entrega, usuario) -> None:
+        organizaciones_involucradas = self._organizaciones_involucradas(
+            entrega
+        )
         if usuario.organizacion_id not in organizaciones_involucradas:
             raise UsuarioNoAutorizadoError(
                 f"El usuario {usuario.id_usuario} no pertenece a una "

@@ -1,14 +1,15 @@
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .listados import PaginacionEstandar
 
 from cr.ac.una.alimentaCR.business.services import SolicitudService
 
 from .entrega_serializers import EntregaResponseSerializer
 from .listados import (
+    PaginacionEstandar,
     SolicitudConsultaSerializer,
     listar_paginado,
     respuesta_paginada,
@@ -16,6 +17,7 @@ from .listados import (
 from .permisos import (
     EsRepresentanteBeneficiaria,
     EsRepresentanteDonante,
+    organizacion_de_alcance,
 )
 from .solicitud_serializers import (
     CrearSolicitudRequestSerializer,
@@ -29,13 +31,16 @@ class SolicitudListaView(APIView):
     POST /api/v1/solicitudes -> 201 + Location | 400, 404, 409, 422
 
     El POST expone el Proceso 3 (solicitar una donacion).
+
+    El GET requiere autenticacion: cada usuario ve solo las solicitudes
+    de su organizacion (el administrador ve todas).
     """
 
     def get_permissions(self):
         if self.request.method == "POST":
             return [EsRepresentanteBeneficiaria()]
 
-        return []
+        return [IsAuthenticated()]
 
     @extend_schema(
         operation_id="listar_solicitudes",
@@ -51,7 +56,6 @@ class SolicitudListaView(APIView):
                 SolicitudResponseSerializer,
             ),
         },
-        auth=[],
     )
     def get(self, request):
         consulta = SolicitudConsultaSerializer(
@@ -70,6 +74,7 @@ class SolicitudListaView(APIView):
             id_organizacion=datos.get("id_organizacion"),
             id_donacion=datos.get("id_donacion"),
             orden=consulta.orden(),
+            visible_para_organizacion=organizacion_de_alcance(request),
         )
 
         return paginador.get_paginated_response(
@@ -123,6 +128,9 @@ class SolicitudDetalleView(APIView):
     GET    /api/v1/solicitudes/<id> -> 200 | 404
     DELETE /api/v1/solicitudes/<id> -> 204 | 403, 404, 409
 
+    El GET requiere autenticacion y responde 404 si la solicitud no
+    pertenece a la organizacion del usuario (el administrador ve todas).
+
     El DELETE expone el Proceso 4: cancelar una solicitud pendiente
     (cancelacion logica: el estado pasa a CANCELADA).
     """
@@ -131,7 +139,7 @@ class SolicitudDetalleView(APIView):
         if self.request.method == "DELETE":
             return [EsRepresentanteBeneficiaria()]
 
-        return []
+        return [IsAuthenticated()]
 
     @extend_schema(
         operation_id="obtener_solicitud",
@@ -140,11 +148,11 @@ class SolicitudDetalleView(APIView):
             "Obtiene una solicitud mediante su identificador."
         ),
         responses={200: SolicitudResponseSerializer},
-        auth=[],
     )
     def get(self, request, id_solicitud: int):
         solicitud = SolicitudService().obtener_solicitud(
-            id_solicitud
+            id_solicitud,
+            visible_para_organizacion=organizacion_de_alcance(request),
         )
 
         return Response(

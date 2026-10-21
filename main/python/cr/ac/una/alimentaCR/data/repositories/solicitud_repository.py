@@ -1,6 +1,6 @@
 from ..models import Solicitud
 from .base_repository import BaseRepository
-
+from django.db.models import Q
 
 class SolicitudRepository(BaseRepository):
 
@@ -56,3 +56,13 @@ class SolicitudRepository(BaseRepository):
             )
 
         return queryset
+    
+    def visibles_para_organizacion(self, organizacion_id):
+        """
+        Solicitudes en las que participa la organizacion: la que las
+        envio (beneficiaria) o la dueña de la donacion solicitada.
+        """
+        return self.model.objects.filter(
+            Q(organizacion_beneficiaria_id=organizacion_id)
+            | Q(donacion__organizacion_donante_id=organizacion_id)
+        )
