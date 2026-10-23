@@ -20,8 +20,21 @@ from .serializers import (
 
 class DonacionListaView(APIView):
     """
-    GET /api/v1/donaciones -> 200, lista de donaciones
+    GET  /api/v1/donaciones -> 200, lista de donaciones (publico)
+    POST /api/v1/donaciones -> 201 + Location | 400, 401, 403, 404, 422
+
+    El POST expone el Proceso 1 (publicar una donacion): crea una
+    donacion para la organizacion del representante donante
+    autenticado. Valida el formato con el serializer, delega en
+    DonacionService y serializa la respuesta. Las excepciones de
+    negocio las traduce el manejador global.
     """
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [EsRepresentanteDonante()]
+
+        return []
 
     @extend_schema(
         operation_id="listar_donaciones",
@@ -59,42 +72,6 @@ class DonacionListaView(APIView):
             coleccion,
             DonacionResponseSerializer,
         )
-
-
-class DonacionDetalleView(APIView):
-    """
-    GET /api/v1/donaciones/<id> -> 200 | 404
-    """
-
-    @extend_schema(
-        operation_id="obtener_donacion",
-        summary="Obtener donacion",
-        description=(
-            "Obtiene una donacion mediante su identificador."
-        ),
-        responses={200: DonacionResponseSerializer},
-        auth=[],
-    )
-    def get(self, request, id_donacion: int):
-        donacion = DonacionService().obtener(
-            id_donacion
-        )
-
-        return Response(
-            DonacionResponseSerializer(donacion).data
-        )
-
-
-class PublicarDonacionView(APIView):
-    """
-    POST /api/v1/donaciones/publicar -> 201 + Location | 400
-
-    Expone el proceso de publicar una Donacion. Valida el formato
-    con el DTO, delega en DonacionService y serializa la respuesta.
-    Las excepciones de negocio las traduce el manejador global.
-    """
-
-    permission_classes = [EsRepresentanteDonante]
 
     @extend_schema(
         operation_id="publicar_donacion",
@@ -136,3 +113,27 @@ class PublicarDonacionView(APIView):
         )
 
         return respuesta
+
+
+class DonacionDetalleView(APIView):
+    """
+    GET /api/v1/donaciones/<id> -> 200 | 404
+    """
+
+    @extend_schema(
+        operation_id="obtener_donacion",
+        summary="Obtener donacion",
+        description=(
+            "Obtiene una donacion mediante su identificador."
+        ),
+        responses={200: DonacionResponseSerializer},
+        auth=[],
+    )
+    def get(self, request, id_donacion: int):
+        donacion = DonacionService().obtener(
+            id_donacion
+        )
+
+        return Response(
+            DonacionResponseSerializer(donacion).data
+        ) 

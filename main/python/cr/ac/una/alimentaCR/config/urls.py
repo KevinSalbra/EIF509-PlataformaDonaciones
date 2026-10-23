@@ -39,3 +39,7 @@ urlpatterns = [
         ),
     ),
 ]
+
+# Errores 404 y 500 fuera de DRF (Problem Details para rutas /api/).
+handler404 = "cr.ac.una.alimentaCR.presentation.exception_handler.manejador_404"
+handler500 = "cr.ac.una.alimentaCR.presentation.exception_handler.manejador_500"

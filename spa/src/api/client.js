@@ -148,5 +148,5 @@ export function listarCategoriasActivas(signal) {
 }
 
 export function publicarDonacion(datos) {
-  return request("/api/v1/donaciones/publicar", { method: "POST", body: datos });
+  return request("/api/v1/donaciones", { method: "POST", body: datos });
 }
