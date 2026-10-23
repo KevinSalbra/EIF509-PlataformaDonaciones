@@ -2,47 +2,143 @@
 
 Sistema web para la gestión de donaciones de alimentos entre organizaciones donantes y organizaciones beneficiarias.
 
-Proyecto del curso **EIF509 Desarrollo de Aplicaciones Basadas en Web**, Universidad Nacional, II Ciclo 2026.
+Proyecto del curso **EIF509 - Desarrollo de Aplicaciones Basadas en Web**, Universidad Nacional de Costa Rica, II Ciclo 2026.
 
 ---
 
-## Equipo
+## Equipo de desarrollo
 
-| Kevin Salazar Bravo
+- Kevin Salazar Bravo
+- Kimberley Gómez Quesada
 
-| Kimberley Gómez Quesada
+## 1. Descripción del proyecto
 
----
+AlimentaCR es una plataforma web orientada a facilitar la gestión de donaciones de alimentos entre organizaciones donantes y beneficiarias en Costa Rica.
 
-## Qué es
+El sistema permite administrar el proceso de publicación, solicitud, asignación y entrega de donaciones. Las organizaciones donantes pueden publicar alimentos disponibles y gestionar las solicitudes recibidas, mientras que las organizaciones beneficiarias pueden consultar las donaciones disponibles y solicitar aquellos alimentos que necesiten.
 
-AlimentaCR es una plataforma web orientada a facilitar la gestión de donaciones de alimentos entre organizaciones donantes y organizaciones beneficiarias en Costa Rica.
+La plataforma busca centralizar un proceso que actualmente puede depender de llamadas, mensajes o contactos personales, facilitando el seguimiento de las donaciones y el aprovechamiento de alimentos aptos para el consumo.
 
-El sistema permite administrar el proceso de publicación, solicitud, asignación y entrega de donaciones. Las organizaciones donantes pueden publicar alimentos disponibles y gestionar las solicitudes recibidas, mientras que las organizaciones beneficiarias pueden consultar las donaciones disponibles y solicitar aquellas que necesiten.
-
-El sistema busca centralizar un proceso que actualmente puede depender de llamadas, mensajes o contactos personales, facilitando el seguimiento y aprovechamiento de alimentos aptos para el consumo.
-
-El detalle del dominio, sus entidades, procesos, reglas de negocio y alcance se encuentra en [`docs/Propuesta-Dominio.md`](docs/Propuesta-Dominio.md).
+El detalle del dominio, sus entidades, procesos, reglas de negocio y alcance se encuentra en [docs/Propuesta-Dominio.md](docs/Propuesta-Dominio.md).
 
 ---
 
-## Requisitos
+## 2. Sistema desplegado
 
-- Python 3.9
+AlimentaCR se encuentra desplegado en servicios administrados en la nube, utilizando Render para la aplicación y MongoDB Atlas para la base de datos documental.
 
-- pip
+### Enlaces públicos
 
-- Git
+| Componente | Enlace |
+|---|---|
+| Aplicación web React (SPA) | [Abrir AlimentaCR](https://alimentacr-spa.onrender.com) |
+| API REST | [API AlimentaCR](https://alimentacr-api.onrender.com) |
+| Documentación Swagger UI | [Consultar Swagger](https://alimentacr-api.onrender.com/api/docs/) |
+| Esquema OpenAPI | [Consultar esquema](https://alimentacr-api.onrender.com/api/schema/) |
+| Panel administrativo MVC | [Abrir panel administrativo](https://alimentacr-api.onrender.com/panel/) |
 
-- Docker Desktop, que incluye Docker Compose
+Todos los enlaces públicos utilizan HTTPS.
 
-- PostgreSQL 18.6, provisto mediante Docker y sin necesidad de instalación local
+**Nota:** debido a las características de los servicios gratuitos de Render, la primera solicitud puede tardar mientras el servicio se reactiva después de un período de inactividad.
 
-- Flyway 13.3.0, provisto mediante Docker y sin necesidad de instalación local
+### Acceso para evaluación
 
-- MongoDB 8.0, provisto mediante Docker y sin necesidad de instalación local
+El sistema dispone de usuarios de prueba para comprobar las funcionalidades correspondientes a los diferentes roles.
 
-Verifique las versiones instaladas:
+Las credenciales de acceso se proporcionarán al profesor mediante el aula virtual, junto con las direcciones públicas de la aplicación.
+
+Las contraseñas de prueba no se publican en este repositorio.
+
+---
+
+## 3. Arquitectura del sistema
+
+AlimentaCR utiliza una arquitectura por capas en el backend y dispone de dos interfaces de presentación que permiten interactuar con el sistema.
+
+### Componentes principales
+
+| Componente | Responsabilidad |
+|---|---|
+| SPA React | Interfaz del usuario final; consume la API REST mediante solicitudes HTTP y autenticación JWT. |
+| Panel MVC Django | Interfaz administrativa renderizada en el servidor mediante plantillas HTML. |
+| API REST | Expone las operaciones del dominio mediante Django REST Framework. |
+| Capa de negocio | Implementa servicios, validaciones y reglas de negocio. |
+| Capa de datos | Gestiona los modelos, repositorios y operaciones de persistencia. |
+| PostgreSQL | Almacena los datos transaccionales y las entidades principales del dominio. |
+| MongoDB | Almacena la bitácora de eventos y las acciones relevantes del sistema. |
+| Flyway | Administra y aplica las migraciones versionadas de PostgreSQL. |
+
+### Arquitectura por capas
+
+El backend se organiza en los siguientes paquetes:
+
+```text
+main/python/cr/ac/una/alimentaCR/
+├── presentation/
+├── business/
+├── data/
+└── config/
+```
+
+| Capa | Responsabilidad |
+|---|---|
+| `presentation/` | Endpoints REST, vistas MVC, serializadores y recepción de solicitudes HTTP. |
+| `business/` | Servicios, reglas de negocio, validaciones y coordinación de transacciones. |
+| `data/` | Modelos, repositorios y acceso a las bases de datos. |
+| `config/` | Configuración de Django, rutas y componentes de infraestructura. |
+
+La dirección principal de dependencias es:
+
+```text
+presentation → business → data
+```
+
+La capa de presentación utiliza los servicios de negocio, mientras que estos coordinan las operaciones de persistencia.
+
+Las reglas propias del dominio se mantienen separadas de los mecanismos de presentación y acceso a datos.
+
+---
+
+## 4. Stack tecnológico
+
+| Área | Tecnología |
+|---|---|
+| Lenguaje backend | Python |
+| Framework backend | Django |
+| API REST | Django REST Framework |
+| Documentación API | drf-spectacular / Swagger UI |
+| Interfaz SPA | React |
+| Herramienta de construcción SPA | Vite |
+| Interfaz administrativa MVC | Django Templates |
+| Autenticación API | JSON Web Tokens (JWT) |
+| Persistencia relacional | PostgreSQL |
+| Acceso relacional | Django ORM |
+| Persistencia documental | MongoDB |
+| Migraciones relacionales | Flyway |
+| Servidor de producción | Gunicorn |
+| Contenedores | Docker y Docker Compose |
+| Despliegue de API y SPA | Render |
+| Base de datos documental administrada | MongoDB Atlas |
+| Pruebas automatizadas | pytest |
+| Integración continua | GitHub Actions |
+
+---
+
+## 5. Requisitos para ejecución local
+
+Para ejecutar el proyecto en un entorno de desarrollo se requiere:
+
+- Python 3.9 o una versión compatible con las dependencias del proyecto.
+- pip.
+- Git.
+- Docker Desktop con Docker Compose.
+- Node.js y npm para ejecutar la SPA React.
+
+Los servicios de bases de datos se ejecutan mediante Docker, por lo que no es necesario instalar PostgreSQL, MongoDB ni Flyway directamente en el sistema operativo.
+
+El entorno de contenedores utiliza PostgreSQL y MongoDB, mientras que las migraciones relacionales son administradas por Flyway.
+
+### Verificar herramientas
 
 ```bash
 python --version
@@ -50,136 +146,156 @@ pip --version
 git --version
 docker --version
 docker compose version
+node --version
+npm --version
 ```
 
 ---
 
-## 1. Configuración del entorno
+## 6. Configuración del entorno local
 
-### 1.1 Crear el entorno virtual
+### 6.1. Clonar el repositorio
 
-Desde la raíz del repositorio, cree un entorno virtual de Python:
+```bash
+git clone https://github.com/KevinSalbra/EIF509-PlataformaDonaciones.git
+
+cd EIF509-PlataformaDonaciones
+```
+
+### 6.2. Crear el entorno virtual
+
+Desde la raíz del repositorio:
 
 ```bash
 python -m venv .venv
 ```
 
-> Dependiendo de la instalación o del sistema operativo, la instalacion de Python puede estar disponible por medio de la terminal o de instalador en linea:
+Activar el entorno virtual:
 
-MAC con Brew: brew install python@3.9
-
-Windows: [https://www.python.org/downloads/release/python-3913/](https://www.python.org/downloads/release/python-3913/)
-
-### 1.2 Activar el entorno virtual
-
-**macOS / Linux:**
+**macOS / Linux**
 
 ```bash
 source .venv/bin/activate
 ```
 
-**Windows - PowerShell:**
+**Windows PowerShell**
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-**Windows - CMD:**
+**Windows CMD**
 
 ```cmd
 .venv\Scripts\activate.bat
 ```
 
-Una vez activado correctamente, la terminal debería mostrar `(.venv)` al inicio de la línea.
+Una vez activado, la terminal mostrará normalmente `(.venv)` al inicio de la línea.
 
-### 1.3 Instalar las dependencias
-
-Con el entorno virtual activo:
+### 6.3. Instalar dependencias de Python
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-> La configuración de Django se encuentra en `main/python/cr/ac/una/alimentaCR/config`. El archivo `manage.py` configura automáticamente la ruta necesaria para localizar los módulos del proyecto, por lo que no es necesario configurar manualmente `PYTHONPATH`.
+La configuración de Django se encuentra en:
 
-> PostgreSQL, Flyway y Docker no se agregan a `requirements.txt`, porque no son dependencias de Python. PostgreSQL y Flyway se obtienen mediante las imágenes definidas en `docker-compose.yml`.
+```text
+main/python/cr/ac/una/alimentaCR/config/
+```
 
-### 1.4 Base de datos relacional (PostgreSQL)
+El archivo `manage.py`, ubicado en la raíz, configura la ruta necesaria para localizar los módulos del proyecto.
 
-El proyecto utiliza **PostgreSQL** como base de datos relacional. El esquema se administra mediante migraciones versionadas con **Flyway**, y ambos servicios se ejecutan con Docker Compose.
+### 6.4. Configurar las variables de entorno
 
-No es necesario instalar PostgreSQL ni Flyway directamente en el sistema operativo. Para ejecutar la capa de datos únicamente se requiere Docker Desktop.
+El proyecto utiliza variables de entorno para mantener la configuración y las credenciales separadas del código fuente.
 
-#### 1.4.1 Configurar las variables de entorno
+Si existe el archivo `.env.example`, puede utilizarse como plantilla.
 
-El repositorio incluye el archivo `.env.example` con las variables requeridas.
-
-En macOS o Linux:
+**macOS / Linux**
 
 ```bash
 cp .env.example .env
 ```
 
-En Windows PowerShell:
+**Windows PowerShell**
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-El archivo `.env` debe contener:
+El archivo `.env` debe configurarse con los valores correspondientes al entorno local.
 
-```env
-POSTGRES_DB=alimentacr
-POSTGRES_USER=alimentacr_user
-POSTGRES_PASSWORD=cambiar_contrasena
-POSTGRES_PORT=5433
-```
+#### Variables del backend
 
-El archivo `.env` contiene configuración local y no debe agregarse al repositorio.
+| Variable | Propósito |
+|---|---|
+| `SECRET_KEY` | Clave de firma utilizada por Django y los JWT del proyecto. |
+| `DEBUG` | Activa o desactiva el modo de depuración. |
+| `ALLOWED_HOSTS` | Define los hosts autorizados para acceder a Django. |
+| `POSTGRES_DB` | Nombre de la base de datos PostgreSQL. |
+| `POSTGRES_USER` | Usuario de PostgreSQL. |
+| `POSTGRES_PASSWORD` | Contraseña de PostgreSQL. |
+| `POSTGRES_HOST` | Dirección del servidor PostgreSQL. |
+| `POSTGRES_PORT` | Puerto de conexión a PostgreSQL. |
+| `MONGODB_URI` | Cadena de conexión utilizada para acceder a MongoDB. |
+| `MONGO_DATABASE` | Nombre de la base de datos documental. |
+| `MONGO_ROOT_USERNAME` | Usuario administrador de MongoDB local. |
+| `MONGO_ROOT_PASSWORD` | Contraseña del administrador de MongoDB local. |
+| `MONGO_PORT` | Puerto utilizado por MongoDB local. |
+| `CORS_ALLOWED_ORIGINS` | Orígenes autorizados para consumir la API desde el navegador. |
+| `CSRF_TRUSTED_ORIGINS` | Orígenes confiables para las operaciones protegidas mediante CSRF. |
 
-#### 1.4.2 Validar Docker Compose
+Las variables `MONGO_ROOT_USERNAME`, `MONGO_ROOT_PASSWORD` y `MONGO_PORT` corresponden a la configuración de los contenedores locales.
 
-Desde la raíz del repositorio, valide la configuración:
+#### Variables de despliegue
 
-```bash
-docker compose config
-```
+| Variable | Propósito |
+|---|---|
+| `PORT` | Puerto asignado al servicio web por la plataforma de despliegue. |
+| `VITE_API_URL` | URL pública de la API utilizada durante la construcción de React. |
 
-Si el comando no presenta errores, la configuración es válida.
+**Importante:** los valores de contraseñas, claves y cadenas de conexión privadas no deben incluirse en el repositorio.
 
-#### 1.4.3 Levantar PostgreSQL
+El archivo `.env` debe permanecer excluido mediante `.gitignore`.
 
-Ejecute:
+---
+
+## 7. Bases de datos locales
+
+### 7.1. PostgreSQL
+
+PostgreSQL almacena la información transaccional del sistema, incluyendo las entidades principales del dominio.
+
+El esquema relacional se administra mediante migraciones SQL versionadas con Flyway.
+
+Para levantar PostgreSQL:
 
 ```bash
 docker compose up -d postgres
 ```
 
-La primera ejecución descargará la imagen de PostgreSQL y creará el volumen necesario para conservar los datos.
-
-Compruebe el estado del contenedor:
+Para comprobar el estado del contenedor:
 
 ```bash
 docker compose ps
 ```
 
-El contenedor `alimentacr-postgres` debe aparecer con estado `healthy` antes de ejecutar las migraciones.
+### 7.2. Aplicar migraciones con Flyway
 
-#### 1.4.4 Ejecutar las migraciones
-
-Para aplicar todas las migraciones pendientes:
+Ejecute:
 
 ```bash
 docker compose run --rm flyway migrate
 ```
 
-Flyway ejecuta los archivos ubicados en:
+Las migraciones se encuentran en:
 
 ```text
 database/migrations/
 ```
 
-Los nombres de las migraciones deben utilizar la siguiente convención:
+Los archivos siguen la convención:
 
 ```text
 V<numero>__<descripcion>.sql
@@ -189,40 +305,62 @@ Por ejemplo:
 
 ```text
 V1__crear_esquema_relacional.sql
-V2__insertar_datos_iniciales.sql
+V2__insertar_datos_prueba.sql
 ```
 
 La letra `V` debe escribirse en mayúscula y deben utilizarse dos guiones bajos antes de la descripción.
 
-#### 1.4.5 Consultar el estado de las migraciones
+Para consultar el estado de las migraciones:
 
 ```bash
 docker compose run --rm flyway info
 ```
 
-Las migraciones aplicadas correctamente aparecen con estado `Success`. Las migraciones disponibles que todavía no se han ejecutado aparecen con estado `Pending`.
+Flyway registra las migraciones aplicadas en la tabla `flyway_schema_history`.
 
-Flyway crea automáticamente la tabla `flyway_schema_history` para registrar las migraciones aplicadas. Esta tabla no debe modificarse manualmente.
+### 7.3. MongoDB
 
-#### 1.4.6 Conectarse mediante un cliente gráfico
+MongoDB almacena la bitácora de eventos del sistema, siguiendo un enfoque de persistencia políglota.
 
-Opcionalmente, puede utilizarse Postico, pgAdmin, DBeaver u otro cliente compatible con PostgreSQL.
+PostgreSQL conserva el estado actual de las entidades, mientras que MongoDB registra los eventos asociados a las operaciones relevantes.
 
-Los datos de conexión son:
+Para levantar MongoDB:
 
-```text
-Host: localhost
-Puerto: 5433
-Base de datos: alimentacr
-Usuario: alimentacr_user
-Contraseña: valor definido en POSTGRES_PASSWORD
+```bash
+docker compose up -d mongodb
 ```
 
-El puerto externo puede modificarse mediante `POSTGRES_PORT` en `.env`.
+La inicialización local utiliza los scripts ubicados en:
 
-Flyway se conecta internamente mediante `postgres:5432`. Este puerto interno no debe reemplazarse por el puerto externo utilizado desde el sistema operativo.
+```text
+database/mongodb/init/
+```
 
-#### 1.4.7 Detener los servicios
+Estos scripts permiten preparar la colección de eventos, sus índices y los datos de inicialización.
+
+Para verificar el estado del servicio:
+
+```bash
+docker compose ps
+```
+
+La justificación de este diseño se encuentra en [docs/modelo-datos/modelo-mongodb.md](docs/modelo-datos/modelo-mongodb.md).
+
+### 7.4. Levantar ambas bases de datos
+
+Desde la raíz del proyecto:
+
+```bash
+docker compose up -d postgres mongodb
+```
+
+Después, aplique las migraciones:
+
+```bash
+docker compose run --rm flyway migrate
+```
+
+### 7.5. Detener los servicios
 
 Para detener los contenedores sin eliminar los datos:
 
@@ -230,222 +368,307 @@ Para detener los contenedores sin eliminar los datos:
 docker compose stop
 ```
 
-Para detener y eliminar los contenedores conservando el volumen de PostgreSQL:
+Para eliminar los contenedores conservando los volúmenes:
 
 ```bash
 docker compose down
 ```
 
-#### 1.4.8 Reconstruir la base de datos
-
-El siguiente comando elimina los contenedores y los volúmenes de la base de datos:
+**Advertencia:** el comando siguiente elimina los volúmenes de datos locales:
 
 ```bash
 docker compose down -v
 ```
 
-> **Advertencia:** este comando elimina todos los datos almacenados en PostgreSQL y en MongoDB, ya que ambos servicios comparten el mismo `docker-compose.yml`. Debe utilizarse únicamente cuando se necesite reconstruir la base desde cero.
-
-Después puede reconstruirse ejecutando:
-
-```bash
-docker compose up -d postgres
-docker compose run --rm flyway migrate
-```
-
-### 1.5 Base de datos documental (MongoDB)
-
-El proyecto utiliza **MongoDB** para la bitácora de eventos del sistema, siguiendo un enfoque de persistencia políglota: PostgreSQL almacena el estado actual de las entidades del dominio, mientras que MongoDB almacena el historial de acciones ocurridas sobre ellas.
-
-No es necesario instalar MongoDB directamente en el sistema operativo. Al igual que PostgreSQL, se ejecuta mediante Docker Compose.
-
-La justificación de diseño de este subdominio (qué se incrusta, qué se referencia, y por qué) se encuentra en [`docs/modelo-datos/modelo-mongodb.md`](docs/modelo-datos/modelo-mongodb.md).
-
-#### 1.5.1 Configurar las variables de entorno
-
-El archivo `.env` (creado en la sección 1.4.1 a partir de `.env.example`) debe incluir también las variables de MongoDB:
-
-```env
-MONGO_DATABASE=alimentacr_bitacora
-MONGO_ROOT_USERNAME=admin
-MONGO_ROOT_PASSWORD=cambiar_contrasena
-MONGO_PORT=27017
-```
-
-#### 1.5.2 Levantar MongoDB
-
-Ejecute:
-
-```bash
-docker compose up -d mongodb
-```
-
-La primera ejecución descargará la imagen de MongoDB, creará el volumen necesario para conservar los datos, y ejecutará automáticamente los scripts de inicialización ubicados en `database/mongodb/init/`, que crean la colección `eventos`, sus índices y los datos de ejemplo.
-
-Compruebe el estado del contenedor:
-
-```bash
-docker compose ps
-```
-
-El contenedor `alimentacr-mongodb` debe aparecer en ejecución.
-
-> Los scripts de inicialización solo se ejecutan la primera vez que se crea el volumen de datos. Si el volumen ya existe, no se vuelven a ejecutar automáticamente (ver sección 1.5.5).
-
-#### 1.5.3 Verificar la inicialización
-
-Conéctese al contenedor mediante `mongosh`:
-
-```bash
-docker exec -it alimentacr-mongodb mongosh -u admin -p --authenticationDatabase admin
-```
-
-Dentro de `mongosh`:
-
-```javascript
-use alimentacr_bitacora
-show collections
-db.eventos.countDocuments()
-db.eventos.getIndexes()
-```
-
-Debe verse la colección `eventos`, los documentos de ejemplo cargados, y los índices `idx_fecha_hora`, `idx_usuario_id`, `idx_entidad_entidad_id` e `idx_tipo_evento`.
-
-#### 1.5.4 Detener los servicios
-
-Para detener el contenedor sin eliminar los datos:
-
-```bash
-docker compose stop mongodb
-```
-
-#### 1.5.5 Reconstruir la base de datos
-
-Para volver a ejecutar los scripts de inicialización (por ejemplo, tras modificarlos), es necesario eliminar el volumen de datos:
-
-```bash
-docker compose down -v
-docker compose up -d mongodb
-```
-
-> **Advertencia:** al igual que en la sección 1.4.8, este comando elimina también los datos de PostgreSQL, ya que `-v` afecta a todos los volúmenes del proyecto.
+No debe utilizarse si se necesita conservar la información almacenada en PostgreSQL o MongoDB.
 
 ---
 
-## 2. Cómo levantar el proyecto
+## 8. Ejecución del backend
 
-Desde la raíz del repositorio, primero levante PostgreSQL y MongoDB, y aplique las migraciones pendientes:
-
-```bash
-docker compose up -d postgres mongodb
-docker compose run --rm flyway migrate
-```
-
-También puede levantar ambas bases de datos con un solo comando:
-
-```bash
-docker compose up -d
-```
-
-Con el entorno virtual activo, verifique que la configuración de Django sea correcta:
+Con las bases de datos disponibles y el entorno virtual activado, verifique la configuración de Django:
 
 ```bash
 python manage.py check
 ```
 
-La respuesta esperada es:
+La respuesta esperada, si no existen problemas de configuración, es:
 
 ```text
 System check identified no issues (0 silenced).
 ```
 
-Luego, inicie el servidor de desarrollo:
+Para iniciar el servidor de desarrollo:
 
 ```bash
 python manage.py runserver 8080
 ```
 
-La aplicación quedará disponible por defecto en:
+El backend estará disponible en:
 
 ```text
-http://localhost:8080/api/salud
+http://localhost:8080/
 ```
 
-Para detener el servidor utilice `Ctrl + C`.
+La documentación Swagger local podrá consultarse en:
+
+```text
+http://localhost:8080/api/docs/
+```
+
+El panel administrativo MVC estará disponible en:
+
+```text
+http://localhost:8080/panel/
+```
+
+Para detener el servidor, utilice `Ctrl + C`.
 
 ---
 
-## 3. Cómo verificar que funciona
+## 9. Ejecución de la SPA React
 
-Cuando se incorpore el endpoint de verificación de salud, también podrá comprobarse el estado de la aplicación mediante:
+La aplicación React se encuentra en la carpeta:
 
-Abra **dos terminales** desde la raíz del repositorio, con el entorno virtual activo.
-
-**Terminal 1 — iniciar el servidor:**
-
-```bash
-python manage.py runserver 8080
+```text
+spa/
 ```
 
-**Terminal 2 — probar el endpoint de salud:**
+Desde la raíz del repositorio:
 
 ```bash
-curl http://localhost:8080/api/salud
+cd spa
 ```
 
-Si la aplicación está corriendo correctamente, este comando debe devolver una respuesta JSON confirmando que el servicio está activo.
+Instale las dependencias:
 
-## Otros comandos
+```bash
+npm install
+```
 
-| Comando | Qué hace |
-| --- | --- |
-| `python manage.py runserver` | Inicia el servidor de desarrollo |
-| `python manage.py check` | Verifica la configuración del proyecto |
-| `python manage.py migrate` | Aplica las migraciones pendientes |
-| `python manage.py makemigrations` | Genera nuevas migraciones |
-| `pytest` | Ejecuta las pruebas automatizadas |
-| `pip install -r requirements.txt` | Instala las dependencias del proyecto |
-| `docker compose config` | Valida la configuración de Docker Compose |
-| `docker compose up -d` | Levanta PostgreSQL y MongoDB en segundo plano |
-| `docker compose up -d postgres` | Levanta solo PostgreSQL en segundo plano |
-| `docker compose up -d mongodb` | Levanta solo MongoDB en segundo plano |
-| `docker compose run --rm flyway migrate` | Aplica las migraciones pendientes de Flyway |
-| `docker compose run --rm flyway info` | Muestra el estado de las migraciones de Flyway |
-| `docker exec -it alimentacr-mongodb mongosh -u admin -p` | Conecta a MongoDB mediante `mongosh` |
-| `docker compose ps` | Muestra el estado de los contenedores |
-| `docker compose logs postgres` | Muestra los registros de PostgreSQL |
-| `docker compose logs mongodb` | Muestra los registros de MongoDB |
-| `docker compose stop` | Detiene los contenedores sin eliminarlos |
-| `docker compose down` | Elimina los contenedores y conserva los volúmenes |
-| `docker compose down -v` | Elimina los contenedores y los datos almacenados en los volúmenes |
+Configure `VITE_API_URL` con la dirección del backend que utilizará la SPA.
 
-> Flyway es la fuente de verdad del esquema relacional de AlimentaCR. Los modelos de `data/models/` utilizan `managed = False` y únicamente mapean las tablas creadas mediante los archivos SQL de `database/migrations/`. Ante un cambio del esquema, primero debe crearse una nueva migración Flyway y luego actualizarse el modelo Django correspondiente. Las migraciones de Django se conservan únicamente para los componentes propios del framework.
+Para iniciar el servidor de desarrollo:
+
+```bash
+npm run dev
+```
+
+Vite mostrará en la terminal la dirección local donde se encuentra disponible la aplicación.
+
+Para generar la versión de producción:
+
+```bash
+npm run build
+```
+
+El resultado se genera en la carpeta:
+
+```text
+spa/dist/
+```
+
+En producción, la SPA se publica como sitio estático en Render.
 
 ---
 
-## Estructura del proyecto
+## 10. Interfaces del sistema
 
-El código de producción se encuentra bajo el paquete `main/python/cr/ac/una/alimentaCR/` y las pruebas bajo `main/test/cr/ac/una/alimentaCR/`.
+### 10.1. API REST
+
+La API está desarrollada con Django REST Framework y expone los servicios del dominio mediante endpoints HTTP.
+
+Las rutas de la API utilizan el prefijo:
+
+```text
+/api/v1/
+```
+
+La documentación interactiva se encuentra disponible mediante Swagger UI.
+
+**Producción:**
+
+https://alimentacr-api.onrender.com/api/docs/
+
+### 10.2. SPA React
+
+La SPA está orientada al usuario final y consume los servicios expuestos por la API REST.
+
+Entre las funcionalidades implementadas y comprobadas se encuentran:
+
+- Inicio de sesión mediante JWT.
+- Consulta de donaciones.
+- Publicación de nuevas donaciones.
+- Comunicación con la API desplegada en Render.
+
+La interfaz utiliza la configuración `VITE_API_URL` para determinar la dirección del backend.
+
+**Producción:**
+
+https://alimentacr-spa.onrender.com
+
+### 10.3. Panel administrativo MVC
+
+El sistema dispone de un módulo administrativo desarrollado con vistas y plantillas HTML de Django.
+
+Este módulo permite gestionar información administrativa del dominio.
+
+Entre las funcionalidades comprobadas se encuentran:
+
+- Autenticación de usuarios administrativos.
+- Consulta de categorías y organizaciones.
+- Creación y edición de categorías.
+- Edición de organizaciones.
+- Validación de formularios.
+- Paginación de listados.
+- Protección CSRF.
+- Patrón Post/Redirect/Get.
+
+**Producción:**
+
+https://alimentacr-api.onrender.com/panel/
+
+El módulo MVC se ejecuta dentro del mismo servicio Django que publica la API REST.
+
+---
+
+## 11. Despliegue en producción
+
+AlimentaCR utiliza servicios administrados en la nube para publicar la aplicación y sus bases de datos.
+
+### 11.1. Servicios utilizados
+
+| Servicio | Plataforma | Función |
+|---|---|---|
+| `alimentacr-api` | Render Web Service | API REST y panel administrativo Django. |
+| `alimentacr-spa` | Render Static Site | Aplicación React. |
+| PostgreSQL | Render PostgreSQL | Base de datos relacional. |
+| `alimentacr-cluster` | MongoDB Atlas | Base de datos documental y bitácora de eventos. |
+
+### 11.2. Despliegue del backend
+
+El backend utiliza un contenedor Docker que incorpora las dependencias de Python, Django, Gunicorn y Flyway.
+
+El servicio ejecuta el script:
+
+```text
+scripts/start.sh
+```
+
+Durante el arranque se realizan las siguientes operaciones:
+
+1. Se establece la conexión con PostgreSQL mediante las variables de entorno.
+2. Flyway valida y aplica las migraciones pendientes.
+3. Si las migraciones finalizan correctamente, se inicia Gunicorn.
+4. Gunicorn publica la aplicación Django en el puerto asignado por Render.
+
+Este mecanismo permite mantener actualizado el esquema relacional durante los despliegues.
+
+### 11.3. Despliegue de React
+
+La SPA se publica mediante un servicio de sitios estáticos de Render.
+
+La construcción utiliza:
+
+```bash
+npm install && npm run build
+```
+
+El directorio publicado es:
+
+```text
+dist/
+```
+
+La variable `VITE_API_URL` permite configurar la dirección pública de la API durante la construcción.
+
+### 11.4. Configuración de desarrollo y producción
+
+La configuración del backend se administra mediante variables de entorno, sin incorporar credenciales directamente en el código fuente.
+
+El proyecto utiliza un archivo común `settings.py`, cuyo comportamiento cambia según las variables proporcionadas por el entorno.
+
+En desarrollo se utilizan los servicios locales de Docker Compose y las direcciones correspondientes al equipo del desarrollador.
+
+En producción se utilizan los servicios administrados de Render y MongoDB Atlas, con configuraciones independientes para los dominios, conexiones y secretos.
+
+Las claves utilizadas para firmar los JWT de producción se mantienen separadas de las utilizadas en desarrollo.
+
+### 11.5. Seguridad del despliegue
+
+La configuración contempla:
+
+- Uso de HTTPS en los servicios públicos.
+- Autenticación mediante JWT para la API.
+- Configuración de CORS con el dominio autorizado de React.
+- Protección CSRF en los formularios del panel administrativo.
+- Cookies seguras cuando `DEBUG=False`.
+- Gestión de credenciales y claves mediante variables de entorno.
+- Separación de secretos entre desarrollo y producción.
+
+Las contraseñas y claves privadas no se documentan con sus valores reales.
+
+---
+
+## 12. Pruebas y verificación
+
+Las pruebas automatizadas del proyecto se encuentran en:
+
+```text
+main/test/cr/ac/una/alimentaCR/
+```
+
+Su organización refleja las principales capas del sistema:
+
+```text
+main/test/cr/ac/una/alimentaCR/
+├── presentation/
+├── business/
+└── data/
+```
+
+Para ejecutar la suite de pruebas:
+
+```bash
+pytest
+```
+
+### Verificaciones realizadas en producción
+
+Durante el Laboratorio 6 se realizaron pruebas funcionales sobre los servicios desplegados.
+
+| Componente | Verificación |
+|---|---|
+| API Django | Inicio del servicio y acceso público mediante HTTPS. |
+| Swagger UI | Acceso a la documentación interactiva. |
+| React | Inicio de sesión, consulta y publicación de donaciones. |
+| PostgreSQL | Persistencia de donaciones creadas desde la SPA. |
+| MongoDB Atlas | Registro de eventos de publicación en la bitácora. |
+| Flyway | Validación y ejecución automática durante el arranque. |
+| Panel MVC | Autenticación, formularios, validaciones y navegación administrativa. |
+| Configuración | Uso de variables de entorno y dominios autorizados. |
+
+Estas verificaciones complementan las pruebas automatizadas del proyecto.
+
+---
+
+## 13. Estructura del proyecto
+
+La estructura general del repositorio es:
 
 ```text
 EIF509-PlataformaDonaciones/
-
+│
 ├── database/
 │   ├── migrations/
-│   │   └── V1__crear_esquema_relacional.sql
 │   └── mongodb/
-│       ├── init/
-│       │   ├── 01_init.js
-│       │   └── 02_seed.js
-│       └── seeds/
-│           └── eventos.json
+│       └── init/
 │
 ├── docs/
 │   ├── adr/
+│   ├── api-rest/
 │   ├── arquitectura/
 │   ├── modelo-datos/
-│   │   ├── modelo-relacional.md
-│   │   └── modelo-mongodb.md
 │   └── Propuesta-Dominio.md
 │
 ├── main/
@@ -455,224 +678,124 @@ EIF509-PlataformaDonaciones/
 │   │       ├── business/
 │   │       ├── data/
 │   │       └── config/
-│   │
 │   └── test/
 │       └── cr/ac/una/alimentaCR/
 │
+├── scripts/
+│   └── start.sh
+│
+├── spa/
+│
 ├── .env.example
+├── .gitignore
 ├── docker-compose.yml
+├── Dockerfile
 ├── manage.py
 ├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
-### Arquitectura por capas
-
-| Capa | Responsabilidad |
-| --- | --- |
-| `presentation/` | Endpoints REST, serializers y recepción de solicitudes HTTP |
-| `business/` | Servicios, reglas de negocio, validaciones y transacciones |
-| `data/` | Modelos, repositorios y acceso a datos |
-| `config/` | Configuración de Django y de la aplicación |
-
-La dirección de dependencias es estrictamente unidireccional:
-
-```text
-presentation -> business -> data
-```
-
-La capa de presentación puede utilizar la capa de negocio y la capa de negocio puede utilizar la capa de datos, pero las dependencias nunca deben ocurrir en sentido contrario.
-
-### Reglas de las capas
-
-1. La capa `presentation` no accede directamente a los repositorios.
-
-2. Las reglas y validaciones propias del dominio pertenecen a `business`.
-
-3. La capa `business` no debe depender de componentes HTTP o de presentación.
-
-4. El acceso y persistencia de información corresponde a `data`.
-
-5. Las operaciones transaccionales que involucren reglas de negocio se coordinan desde `business`.
-
----
-
-## Pruebas
-
-Las pruebas automatizadas se encuentran separadas del código de producción:
-
-```text
-main/test/cr/ac/una/alimentaCR/
-
-├── presentation/
-
-├── business/
-
-└── data/
-```
-
-La estructura de pruebas refleja las principales capas del sistema, permitiendo probar cada responsabilidad de manera independiente.
-
-Para ejecutar las pruebas:
-
-```bash
-pytest
+└── README.md
 ```
 
 ---
 
-## Stack tecnológico
+## 14. Decisiones de arquitectura
 
-| Área | Tecnología |
-| --- | --- |
-| Lenguaje | Python |
-| Framework backend | Django |
-| API REST | Django REST Framework |
-| Persistencia relacional | Django ORM |
-| Base de datos relacional | PostgreSQL |
-| Base de datos documental | MongoDB |
-| Pruebas | pytest |
-| Frontend | React |
-| Integración continua | GitHub Actions |
+Las decisiones arquitectónicas relevantes se documentan mediante **Architecture Decision Records (ADR)** en `docs/adr/`.
 
-> React será incorporado cuando corresponda según la evolución y los laboratorios del curso.
+| ADR | Decisión |
+|---|---|
+| [ADR-001](docs/adr/ADR-001-seleccion-stack-backend.md) | Selección de Python y Django REST Framework como stack backend. |
+| [ADR-002](docs/adr/ADR-002-persistencia-poliglota-postgresql-mongodb.md) | Uso de persistencia políglota con PostgreSQL y MongoDB. |
+
+El ADR-001 explica la selección del stack tecnológico, sus alternativas y consecuencias.
+
+El ADR-002 justifica la separación entre la información transaccional del dominio y la bitácora documental de eventos.
 
 ---
 
-## Decisiones de arquitectura
+## 15. Documentación del proyecto
 
-Las decisiones arquitectónicas relevantes del proyecto se documentan mediante **Architecture Decision Records (ADR)** en `docs/adr/`.
+La documentación complementaria se encuentra en la carpeta `docs/`.
 
-| ADR | Decisión | Estado |
-| --- | --- | --- |
-| [ADR-001](docs/adr/ADR-001-seleccion-stack-backend.md) | Python y Django REST Framework como stack backend | Aceptada |
-| [ADR-002](docs/adr/ADR-002-persistencia-poliglota-postgresql-mongodb.md) | Persistencia políglota: PostgreSQL + MongoDB | Aceptada |
+| Documento o carpeta | Contenido |
+|---|---|
+| [Propuesta de dominio](docs/Propuesta-Dominio.md) | Descripción del negocio, actores, entidades, procesos y reglas. |
+| [Decisiones de arquitectura](docs/adr/) | ADR de las decisiones técnicas del proyecto. |
+| [Arquitectura](docs/arquitectura/) | Diagramas y documentación arquitectónica. |
+| [Modelo de datos](docs/modelo-datos/) | Modelos relacional y documental. |
+| [API REST](docs/api-rest/) | Documentación de endpoints y funcionalidades REST. |
 
-El ADR-001 documenta la decisión de utilizar Python y Django REST Framework como stack alternativo al stack de referencia del curso, así como las alternativas consideradas y sus consecuencias.
-
----
-
-## Documentación
-
-La documentación del proyecto se encuentra en:
-
-```text
-docs/
-
-├── Propuesta-Dominio.md
-
-├── adr/
-
-│   └── ADR-001-seleccion-stack-backend.md
-
-├── arquitectura/
-
-│   └── diagrama-arquitectura.png
-
-└── modelo-datos/
-
-    ├── modelo-relacional.md
-
-    └── modelo-mongodb.md
-```
-
-La propuesta de dominio contiene la descripción del negocio, actores, entidades, relaciones, procesos, reglas y alcance del sistema.
-
-Los ADR registran las decisiones arquitectónicas importantes tomadas durante la evolución del proyecto.
-
-El modelo de datos documenta el diseño de ambas bases de datos: el esquema relacional en PostgreSQL y el subdominio documental en MongoDB, incluyendo la justificación de las decisiones de diseño.
+La documentación específica del Laboratorio 6 incluirá la arquitectura desplegada, configuración de servicios, variables de entorno, funcionamiento de Flyway, pruebas de producción y diagrama de despliegue.
 
 ---
 
-## Convenciones
+## 16. Comandos útiles
+
+| Comando | Descripción |
+|---|---|
+| `python manage.py runserver 8080` | Inicia el backend local. |
+| `python manage.py check` | Verifica la configuración de Django. |
+| `python manage.py check --deploy` | Ejecuta comprobaciones adicionales de seguridad. |
+| `pytest` | Ejecuta las pruebas automatizadas. |
+| `python -m pip install -r requirements.txt` | Instala dependencias de Python. |
+| `docker compose config` | Valida la configuración de Docker Compose. |
+| `docker compose up -d postgres mongodb` | Inicia las bases de datos locales. |
+| `docker compose run --rm flyway migrate` | Aplica migraciones pendientes. |
+| `docker compose run --rm flyway info` | Consulta el estado de Flyway. |
+| `docker compose ps` | Muestra el estado de los contenedores. |
+| `docker compose stop` | Detiene los servicios sin eliminar datos. |
+| `docker compose down` | Elimina contenedores conservando los volúmenes. |
+| `npm install` | Instala dependencias de React, desde `spa/`. |
+| `npm run dev` | Inicia la SPA en desarrollo, desde `spa/`. |
+| `npm run build` | Genera la versión de producción de React. |
+
+**Nota sobre migraciones:** Flyway es la fuente de verdad del esquema relacional de AlimentaCR. Los modelos Django correspondientes a las tablas administradas por Flyway se mantienen alineados con las migraciones SQL.
+
+---
+
+## 17. Convenciones de desarrollo
 
 ### Ramas
 
-```text
-main       versión estable del proyecto
+El proyecto utiliza Git para el control de versiones y la colaboración entre integrantes.
 
-develop    integración de cambios
-
-feature/*  desarrollo de funcionalidades
-
-fix/*      corrección de errores
-```
-
-Cada nueva funcionalidad deberá desarrollarse en una rama independiente y posteriormente integrarse mediante un Pull Request.
-
-Ejemplos:
-
-```text
-feature/publicar-donacion
-
-feature/solicitar-donacion
-
-feature/gestion-organizaciones
-
-fix/validacion-fecha-donacion
-```
+Las funcionalidades y correcciones se desarrollan en ramas de trabajo y posteriormente se integran en la rama correspondiente del proyecto.
 
 ### Mensajes de commit
 
-Se utilizarán prefijos para identificar el propósito de cada cambio:
+Se utilizan prefijos para identificar el propósito de los cambios:
 
-```text
-feat:      nueva funcionalidad
-
-fix:       corrección de errores
-
-test:      creación o modificación de pruebas
-
-docs:      cambios de documentación
-
-refactor:  reorganización del código sin cambiar comportamiento
-
-chore:     configuración o mantenimiento
-```
-
-Ejemplos:
-
-```text
-feat: agregar servicio para publicar donaciones
-
-test: agregar pruebas de validación de solicitudes
-
-docs: documentar alcance del dominio
-
-refactor: separar acceso a datos de lógica de negocio
-
-chore: configurar dependencias iniciales de Django
-```
+| Prefijo | Propósito |
+|---|---|
+| `feat:` | Nueva funcionalidad. |
+| `fix:` | Corrección de errores. |
+| `test:` | Creación o modificación de pruebas. |
+| `docs:` | Cambios de documentación. |
+| `refactor:` | Reorganización del código sin modificar su comportamiento. |
+| `chore:` | Configuración o mantenimiento. |
 
 ### Idioma y nombres del código
 
-Los conceptos propios del dominio se escribirán en español, evitando tildes, espacios y caracteres especiales en nombres de clases, variables, módulos y archivos.
+Los conceptos propios del dominio se expresan principalmente en español, evitando tildes, espacios y caracteres especiales en identificadores.
 
-Los términos técnicos propios del framework o de patrones de desarrollo podrán mantenerse en inglés.
+Se siguen las convenciones habituales de Python:
 
-Ejemplos:
+- `snake_case` para módulos, funciones y variables.
+- `PascalCase` para clases.
 
-```text
-donacion
-
-solicitud
-
-organizacion
-
-DonationSerializer
-
-SolicitudService
-
-DonacionRepository
-```
-
-Se seguirán las convenciones de nombres de Python, utilizando `snake_case` para módulos, funciones y variables, y `PascalCase` para clases.
+Los términos técnicos asociados a frameworks, bibliotecas o patrones pueden mantenerse en inglés.
 
 ---
 
-## Estado del proyecto
+## 18. Estado actual del proyecto
 
-El proyecto se encuentra actualmente en su etapa inicial de definición del dominio y configuración de la arquitectura base.
+AlimentaCR cuenta con una API REST desarrollada en Django, una SPA en React, un módulo administrativo MVC y un entorno de producción desplegado en la nube.
 
-Las funcionalidades serán incorporadas progresivamente durante los laboratorios del curso.
+La plataforma utiliza PostgreSQL para los datos transaccionales y MongoDB para la bitácora de eventos. El esquema relacional se administra mediante Flyway, incluyendo la validación y aplicación automática de migraciones durante el arranque del backend en producción.
+
+Las interfaces y servicios principales han sido desplegados y sometidos a verificaciones funcionales.
+
+El proyecto continúa evolucionando mediante los laboratorios del curso EIF509, incorporando mejoras funcionales, pruebas y documentación técnica.
+
+---
+
+**Universidad Nacional de Costa Rica — EIF509 Desarrollo de Aplicaciones Basadas en Web — II Ciclo 2026.**

@@ -11,7 +11,7 @@ pytestmark = [
 ]
 
 URL = "/api/v1/donaciones"
-URL_PUBLICAR = "/api/v1/donaciones/publicar"
+URL_PUBLICAR = "/api/v1/donaciones"
 TIPO_PROBLEMA = "application/problem+json"
 
 

@@ -1,0 +1,28 @@
+{% extends "panel/base.html" %}
+{% block titulo %}Organizaciones{% endblock %}
+{% block contenido %}
+<div class="acciones">
+  <h1>Organizaciones</h1>
+  <a class="btn" href="{% url 'panel_organizacion_crear' %}">Nueva organización</a>
+</div>
+<div class="tabla-contenedor">
+  <table>
+    <thead><tr><th>Nombre</th><th>Tipo</th><th>Cédula jurídica</th><th>Teléfono</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    {% for organizacion in pagina %}
+      <tr>
+        <td>{{ organizacion.nombre }}</td>
+        <td>{{ organizacion.get_tipo_display }}</td>
+        <td>{{ organizacion.cedula_juridica }}</td>
+        <td>{{ organizacion.telefono }}</td>
+        <td><span class="etiqueta">{{ organizacion.get_estado_display }}</span></td>
+        <td><a href="{% url 'panel_organizacion_editar' organizacion.id_organizacion %}">Editar</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6" class="vacio">No hay organizaciones registradas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "panel/_paginacion.html" %}
+{% endblock %}

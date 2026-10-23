@@ -1,3 +1,4 @@
+
 from rest_framework.permissions import BasePermission
 
 from cr.ac.una.alimentaCR.data.models import Usuario
@@ -49,7 +50,8 @@ class EsRepresentanteBeneficiaria(BasePermission):
             and request.user.rol
             == Usuario.Rol.REPRESENTANTE_BENEFICIARIA
         )
-    
+
+
 class EsRepresentanteOrganizacion(BasePermission):
     """
     Permite acceso a representantes donantes o beneficiarios.
@@ -70,3 +72,13 @@ class EsRepresentanteOrganizacion(BasePermission):
                 Usuario.Rol.REPRESENTANTE_BENEFICIARIA,
             )
         )
+
+
+def organizacion_de_alcance(request):
+    """
+    Organizacion a la que se limita una lectura: la del usuario del
+    token. El administrador no tiene limite (devuelve None).
+    """
+    if request.user.rol == Usuario.Rol.ADMINISTRADOR:
+        return None
+    return request.user.organizacion_id

@@ -1,0 +1,939 @@
+# ============================================================================
+#  AlimentaCR - Colección de peticiones de la API  (Laboratorio 6)
+# ============================================================================
+#  Cliente: extensión "REST Client" de VS Code (humao.rest-client).
+#  Cubre las 26 operaciones de la API, el inicio de sesión de cada rol y los
+#  casos de error. Cada petición indica el código HTTP esperado.
+#
+#  ANTES DE USARLA
+#  1. Cambie @baseUrl a la URL de la API (local o la desplegada en la nube).
+#  2. Cree el archivo  docs/api-rest/.env  junto a este (no se sube a Git) con
+#     las contraseñas de los usuarios de prueba. Solo los NOMBRES van en
+#     .env.example; nunca escriba contraseñas en este archivo:
+#         CLAVE_ADMIN=...   CLAVE_DONANTE=...   CLAVE_BENEFICIARIA=...
+#  3. Ajuste los tres correos de abajo a los usuarios de prueba que existan.
+#
+#  CÓMO EJECUTARLA
+#  Envíe las peticiones EN ORDEN (botón "Send Request" sobre cada una). Los
+#  inicios de sesión de la sección 1 guardan los tokens; las secciones
+#  siguientes reutilizan los datos que ellas mismas crean (categorías,
+#  donaciones, solicitudes, entregas), por lo que se puede repetir sin
+#  depender del estado de la base. Solo algunas peticiones usan datos del
+#  seed (variables @id... de abajo); ajústelas si su base es distinta.
+# ============================================================================
+
+@baseUrl = http://127.0.0.1:8000
+@api = {{baseUrl}}/api/v1
+
+# --- Usuarios de prueba (uno por rol) ---------------------------------------
+@correoAdmin = admin.prueba@alimentacr.test
+@correoDonante = donante.prueba@alimentacr.test
+@correoBeneficiaria = beneficiaria.prueba@alimentacr.test
+
+# --- Datos del seed que usan algunas peticiones -----------------------------
+@idOrgBeneficiaria2 = 5
+@idDonacionSeed = 1
+@idDonacionAsignada = 2
+@idCategoriaSeed = 1
+@idCategoriaInactiva = 6
+@idEntregaFinalizada = 2
+
+# --- Tokens (se llenan al enviar los inicios de sesión de la sección 1) -----
+@tokenAdmin = {{loginAdmin.response.body.access_token}}
+@tokenDonante = {{loginDonante.response.body.access_token}}
+@tokenBeneficiaria = {{loginBeneficiaria.response.body.access_token}}
+@tokenBeneficiaria2 = {{loginBeneficiaria2.response.body.access_token}}
+
+###
+# ============================================================================
+# 0. SALUD DEL SERVICIO
+# ============================================================================
+
+### 1. Estado del servicio (público)
+# @name salud
+# Esperado: 200 OK
+# No requiere token. Útil para comprobar que la API está arriba.
+GET {{api}}/salud
+
+###
+# ============================================================================
+# 1. AUTENTICACIÓN  (inicio de sesión por rol)
+# ============================================================================
+
+### 2. Iniciar sesión como ADMINISTRADOR
+# @name loginAdmin
+# Esperado: 200 OK
+# Devuelve access_token (JWT, 1 hora). Los demás pasos lo reutilizan.
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{correoAdmin}}",
+  "contrasena": "{{$dotenv CLAVE_ADMIN}}"
+}
+
+### 3. Iniciar sesión como REPRESENTANTE_DONANTE
+# @name loginDonante
+# Esperado: 200 OK
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{correoDonante}}",
+  "contrasena": "{{$dotenv CLAVE_DONANTE}}"
+}
+
+### 4. Iniciar sesión como REPRESENTANTE_BENEFICIARIA
+# @name loginBeneficiaria
+# Esperado: 200 OK
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{correoBeneficiaria}}",
+  "contrasena": "{{$dotenv CLAVE_BENEFICIARIA}}"
+}
+
+### 5. Error: contraseña incorrecta
+# @name loginClaveIncorrecta
+# Esperado: 401 Unauthorized
+# No revela si el correo existe.
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{correoAdmin}}",
+  "contrasena": "clave-incorrecta"
+}
+
+### 6. Error: correo inexistente
+# @name loginCorreoInexistente
+# Esperado: 401 Unauthorized
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "nadie@alimentacr.test",
+  "contrasena": "cualquier-clave-1"
+}
+
+### 7. Error: cuerpo vacío
+# @name loginCuerpoVacio
+# Esperado: 400 Bad Request
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{}
+
+### 8. Error: correo con formato inválido
+# @name loginCorreoInvalido
+# Esperado: 400 Bad Request
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "no-es-un-correo",
+  "contrasena": "cualquier-clave-1"
+}
+
+###
+# ============================================================================
+# 2. CATEGORÍAS  (administrador)  +  categorías activas (cualquier rol)
+# ============================================================================
+
+### 9. Listar categorías (paginado)
+# @name listarCategorias
+# Esperado: 200 OK
+# Respuesta: count, page, page_size, total_pages, next, previous, results.
+GET {{api}}/categorias?page=1&page_size=5
+Authorization: Bearer {{tokenAdmin}}
+
+### 10. Crear categoría
+# @name crearCategoria
+# Esperado: 201 Created
+# 201 + encabezado Location hacia la categoría creada.
+POST {{api}}/categorias
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Categoría demo {{$timestamp}}",
+  "descripcion": "Creada desde la colección"
+}
+
+### 11. Obtener categoría
+# @name obtenerCategoria
+# Esperado: 200 OK
+GET {{api}}/categorias/{{crearCategoria.response.body.id_categoria}}
+Authorization: Bearer {{tokenAdmin}}
+
+### 12. Actualizar categoría
+# @name actualizarCategoria
+# Esperado: 200 OK
+PUT {{api}}/categorias/{{crearCategoria.response.body.id_categoria}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "{{crearCategoria.response.body.nombre}}",
+  "descripcion": "Descripción actualizada",
+  "estado": "ACTIVA"
+}
+
+### 13. Categorías activas (lo usa la SPA; cualquier rol autenticado)
+# @name categoriasActivas
+# Esperado: 200 OK
+# Devuelve solo id_categoria y nombre de las categorías activas.
+GET {{api}}/categorias/activas
+Authorization: Bearer {{tokenDonante}}
+
+### 14. Error: nombre de categoría duplicado
+# @name categoriaDuplicada
+# Esperado: 409 Conflict
+POST {{api}}/categorias
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "{{crearCategoria.response.body.nombre}}"
+}
+
+### 15. Error: nombre vacío
+# @name categoriaNombreVacio
+# Esperado: 400 Bad Request
+POST {{api}}/categorias
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "   "
+}
+
+### 16. Error: categoría inexistente
+# @name categoriaInexistente
+# Esperado: 404 Not Found
+GET {{api}}/categorias/999999
+Authorization: Bearer {{tokenAdmin}}
+
+### 17. Error: el donante no puede listar el catálogo completo
+# @name categoriasComoDonante
+# Esperado: 403 Forbidden
+GET {{api}}/categorias
+Authorization: Bearer {{tokenDonante}}
+
+### 18. Error: sin token
+# @name categoriasSinToken
+# Esperado: 401 Unauthorized
+GET {{api}}/categorias
+
+###
+# ============================================================================
+# 3. ORGANIZACIONES  (administrador)
+# ============================================================================
+
+### 19. Listar organizaciones (ordenadas por nombre)
+# @name listarOrganizaciones
+# Esperado: 200 OK
+GET {{api}}/organizaciones?ordering=nombre&page_size=5
+Authorization: Bearer {{tokenAdmin}}
+
+### 20. Crear organización
+# @name crearOrganizacion
+# Esperado: 201 Created
+# Queda en estado PENDIENTE.
+POST {{api}}/organizaciones
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Organización demo {{$timestamp}}",
+  "tipo": "BENEFICIARIA",
+  "cedula_juridica": "3-101-{{$randomInt 100000 999999}}",
+  "descripcion": "Creada desde la colección",
+  "direccion": "San José, Costa Rica",
+  "telefono": "2200-{{$randomInt 1000 9999}}"
+}
+
+### 21. Obtener organización
+# @name obtenerOrganizacion
+# Esperado: 200 OK
+GET {{api}}/organizaciones/{{crearOrganizacion.response.body.id_organizacion}}
+Authorization: Bearer {{tokenAdmin}}
+
+### 22. Actualizar organización (aprobarla)
+# @name actualizarOrganizacion
+# Esperado: 200 OK
+PUT {{api}}/organizaciones/{{crearOrganizacion.response.body.id_organizacion}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "{{crearOrganizacion.response.body.nombre}}",
+  "tipo": "BENEFICIARIA",
+  "descripcion": "Aprobada",
+  "direccion": "San José, Costa Rica",
+  "telefono": "{{crearOrganizacion.response.body.telefono}}",
+  "estado": "APROBADA"
+}
+
+### 23. Error: cédula jurídica duplicada
+# @name organizacionCedulaDuplicada
+# Esperado: 409 Conflict
+POST {{api}}/organizaciones
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Otra organización",
+  "tipo": "DONANTE",
+  "cedula_juridica": "{{crearOrganizacion.response.body.cedula_juridica}}",
+  "direccion": "Heredia",
+  "telefono": "2200-0000"
+}
+
+### 24. Error: tipo inválido
+# @name organizacionTipoInvalido
+# Esperado: 400 Bad Request
+POST {{api}}/organizaciones
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "X",
+  "tipo": "OTRO",
+  "cedula_juridica": "3-101-000001",
+  "direccion": "Y",
+  "telefono": "2200-0000"
+}
+
+### 25. Error: organización inexistente
+# @name organizacionInexistente
+# Esperado: 404 Not Found
+GET {{api}}/organizaciones/999999
+Authorization: Bearer {{tokenAdmin}}
+
+### 26. Error: la beneficiaria no administra organizaciones
+# @name organizacionesComoBeneficiaria
+# Esperado: 403 Forbidden
+GET {{api}}/organizaciones
+Authorization: Bearer {{tokenBeneficiaria}}
+
+###
+# ============================================================================
+# 4. USUARIOS  (administrador)
+# ============================================================================
+
+### 27. Listar usuarios
+# @name listarUsuarios
+# Esperado: 200 OK
+# La respuesta nunca incluye contraseñas ni hashes.
+GET {{api}}/usuarios?page_size=5
+Authorization: Bearer {{tokenAdmin}}
+
+### 28. Crear un segundo representante beneficiario (otra organización)
+# @name crearUsuario
+# Esperado: 201 Created
+# Se usa más abajo para probar que una organización no ve datos de otra.
+POST {{api}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "id_organizacion": {{idOrgBeneficiaria2}},
+  "nombre": "Beneficiaria Dos",
+  "correo": "beneficiaria.dos.{{$timestamp}}@alimentacr.test",
+  "contrasena": "{{$dotenv CLAVE_BENEFICIARIA}}",
+  "telefono": "8800-0002",
+  "rol": "REPRESENTANTE_BENEFICIARIA"
+}
+
+### 29. Iniciar sesión con el usuario recién creado
+# @name loginBeneficiaria2
+# Esperado: 200 OK
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{crearUsuario.response.body.correo}}",
+  "contrasena": "{{$dotenv CLAVE_BENEFICIARIA}}"
+}
+
+### 30. Obtener usuario
+# @name obtenerUsuario
+# Esperado: 200 OK
+GET {{api}}/usuarios/{{crearUsuario.response.body.id_usuario}}
+Authorization: Bearer {{tokenAdmin}}
+
+### 31. Actualizar usuario
+# @name actualizarUsuario
+# Esperado: 200 OK
+PUT {{api}}/usuarios/{{crearUsuario.response.body.id_usuario}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "nombre": "Beneficiaria Dos (editada)",
+  "telefono": "8800-0003",
+  "rol": "REPRESENTANTE_BENEFICIARIA",
+  "estado": "ACTIVO"
+}
+
+### 32. Error: correo repetido
+# @name usuarioCorreoRepetido
+# Esperado: 409 Conflict
+POST {{api}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "id_organizacion": {{idOrgBeneficiaria2}},
+  "nombre": "Repetido",
+  "correo": "{{crearUsuario.response.body.correo}}",
+  "contrasena": "{{$dotenv CLAVE_BENEFICIARIA}}",
+  "rol": "REPRESENTANTE_BENEFICIARIA"
+}
+
+### 33. Error: rol incompatible con el tipo de organización
+# @name usuarioRolIncompatible
+# Esperado: 422 Unprocessable Entity
+# Un representante donante solo puede pertenecer a una organización donante.
+POST {{api}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "id_organizacion": {{idOrgBeneficiaria2}},
+  "nombre": "Rol malo",
+  "correo": "rol.malo.{{$timestamp}}@alimentacr.test",
+  "contrasena": "{{$dotenv CLAVE_BENEFICIARIA}}",
+  "rol": "REPRESENTANTE_DONANTE"
+}
+
+### 34. Error: contraseña demasiado corta
+# @name usuarioContrasenaCorta
+# Esperado: 400 Bad Request
+POST {{api}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "id_organizacion": {{idOrgBeneficiaria2}},
+  "nombre": "Corta",
+  "correo": "corta.{{$timestamp}}@alimentacr.test",
+  "contrasena": "123",
+  "rol": "REPRESENTANTE_BENEFICIARIA"
+}
+
+### 35. Error: usuario inexistente
+# @name usuarioInexistente
+# Esperado: 404 Not Found
+GET {{api}}/usuarios/999999
+Authorization: Bearer {{tokenAdmin}}
+
+### 36. Error: el donante no administra usuarios
+# @name usuariosComoDonante
+# Esperado: 403 Forbidden
+GET {{api}}/usuarios
+Authorization: Bearer {{tokenDonante}}
+
+###
+# ============================================================================
+# 5. DONACIONES  (Proceso 1: publicar)
+# ============================================================================
+
+### 37. Listar donaciones (público, con filtros, orden y paginación)
+# @name listarDonaciones
+# Esperado: 200 OK
+# El listado es público; la SPA lo usa sin token.
+GET {{api}}/donaciones?estado=DISPONIBLE&ordering=-fecha_publicacion&page=1&page_size=5
+
+### 38. Donaciones que vencen en los próximos 7 días
+# @name donacionesPorVencer
+# Esperado: 200 OK
+GET {{api}}/donaciones?por_vencer_en_dias=7
+
+### 39. Error: filtro con valor inválido
+# @name donacionFiltroInvalido
+# Esperado: 400 Bad Request
+GET {{api}}/donaciones?estado=NO_EXISTE
+
+### 40. Obtener donación
+# @name obtenerDonacion
+# Esperado: 200 OK
+GET {{api}}/donaciones/{{idDonacionSeed}}
+
+### 41. Error: donación inexistente
+# @name donacionInexistente
+# Esperado: 404 Not Found
+GET {{api}}/donaciones/999999
+
+### 42. Publicar donación A (la usaremos para cancelar una solicitud)
+# @name publicarDonacionA
+# Esperado: 201 Created
+# El POST va sobre la colección (/donaciones). La organización sale del
+# token. 201 + Location.
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaSeed}},
+  "alimento": "Arroz (demo A {{$timestamp}})",
+  "descripcion": "Para cancelar",
+  "cantidad": "10.50",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+### 43. Publicar donación B (la usaremos para aceptar una solicitud)
+# @name publicarDonacionB
+# Esperado: 201 Created
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaSeed}},
+  "alimento": "Frijoles (demo B {{$timestamp}})",
+  "cantidad": "25",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+### 44. Error: cuerpo vacío
+# @name publicarCuerpoVacio
+# Esperado: 400 Bad Request
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{}
+
+### 45. Error: categoría inexistente
+# @name publicarCategoriaInexistente
+# Esperado: 404 Not Found
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_categoria": 999999,
+  "alimento": "X",
+  "cantidad": "1",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+### 46. Error: categoría inactiva (regla de negocio)
+# @name publicarCategoriaInactiva
+# Esperado: 422 Unprocessable Entity
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaInactiva}},
+  "alimento": "X",
+  "cantidad": "1",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+### 47. Error: fecha límite ya vencida (regla de negocio)
+# @name publicarFechaPasada
+# Esperado: 422 Unprocessable Entity
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaSeed}},
+  "alimento": "X",
+  "cantidad": "1",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" -2 d}}"
+}
+
+### 48. Error: solo los donantes publican
+# @name publicarComoBeneficiaria
+# Esperado: 403 Forbidden
+POST {{api}}/donaciones
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaSeed}},
+  "alimento": "X",
+  "cantidad": "1",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+### 49. Error: sin token
+# @name publicarSinToken
+# Esperado: 401 Unauthorized
+POST {{api}}/donaciones
+Content-Type: application/json
+
+{
+  "id_categoria": {{idCategoriaSeed}},
+  "alimento": "X",
+  "cantidad": "1",
+  "unidad_medida": "KILOGRAMO",
+  "fecha_limite_retiro": "{{$datetime "YYYY-MM-DD" 10 d}}"
+}
+
+###
+# ============================================================================
+# 6. SOLICITUDES  (Procesos 3 y 4: solicitar y cancelar)
+# ============================================================================
+
+### 50. Solicitar la donación A (beneficiaria)
+# @name crearSolicitudA
+# Esperado: 201 Created
+# La organización beneficiaria sale del token. 201 + Location.
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{publicarDonacionA.response.body.id_donacion}},
+  "observacion": "Necesitamos este alimento"
+}
+
+### 51. Solicitar la donación B (beneficiaria)
+# @name crearSolicitudB
+# Esperado: 201 Created
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{publicarDonacionB.response.body.id_donacion}},
+  "observacion": "Para el comedor"
+}
+
+### 52. Error: solicitud duplicada sobre la misma donación
+# @name solicitudDuplicada
+# Esperado: 409 Conflict
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{publicarDonacionB.response.body.id_donacion}}
+}
+
+### 53. Error: la donación ya no está disponible
+# @name solicitudDonacionNoDisponible
+# Esperado: 409 Conflict
+# La donación del seed ya está ASIGNADA.
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{idDonacionAsignada}}
+}
+
+### 54. Error: donación inexistente
+# @name solicitudDonacionInexistente
+# Esperado: 404 Not Found
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": 999999
+}
+
+### 55. Error: observación vacía
+# @name solicitudObservacionVacia
+# Esperado: 400 Bad Request
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{publicarDonacionB.response.body.id_donacion}},
+  "observacion": "   "
+}
+
+### 56. Error: un donante no solicita donaciones
+# @name solicitudComoDonante
+# Esperado: 403 Forbidden
+POST {{api}}/solicitudes
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "id_donacion": {{publicarDonacionB.response.body.id_donacion}}
+}
+
+### 57. Listar solicitudes como beneficiaria (solo las de su organización)
+# @name listarSolicitudesBeneficiaria
+# Esperado: 200 OK
+# Cada usuario ve solo lo de su organización; el administrador ve todo.
+GET {{api}}/solicitudes?page_size=5
+Authorization: Bearer {{tokenBeneficiaria}}
+
+### 58. Listar solicitudes como donante (las de sus donaciones)
+# @name listarSolicitudesDonante
+# Esperado: 200 OK
+GET {{api}}/solicitudes?estado=PENDIENTE
+Authorization: Bearer {{tokenDonante}}
+
+### 59. Listar solicitudes como administrador (todas)
+# @name listarSolicitudesAdmin
+# Esperado: 200 OK
+GET {{api}}/solicitudes
+Authorization: Bearer {{tokenAdmin}}
+
+### 60. Obtener una solicitud propia
+# @name obtenerSolicitud
+# Esperado: 200 OK
+GET {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenBeneficiaria}}
+
+### 61. Error: la solicitud de otra organización responde 404 (no se revela)
+# @name solicitudDeOtraOrganizacion
+# Esperado: 404 Not Found
+GET {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenBeneficiaria2}}
+
+### 62. Error: las lecturas requieren token
+# @name solicitudesSinToken
+# Esperado: 401 Unauthorized
+GET {{api}}/solicitudes
+
+### 63. Error: cancelar una solicitud ajena
+# @name cancelarDeOtraOrganizacion
+# Esperado: 403 Forbidden
+DELETE {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenBeneficiaria2}}
+
+### 64. Error: el donante no cancela solicitudes
+# @name cancelarComoDonante
+# Esperado: 403 Forbidden
+DELETE {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenDonante}}
+
+### 65. Cancelar la solicitud A (cancelación lógica)
+# @name cancelarSolicitud
+# Esperado: 204 No Content
+# Pasa a estado CANCELADA. Sin cuerpo en la respuesta.
+DELETE {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenBeneficiaria}}
+
+### 66. Error: cancelar una solicitud ya cancelada
+# @name cancelarOtraVez
+# Esperado: 409 Conflict
+DELETE {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}
+Authorization: Bearer {{tokenBeneficiaria}}
+
+###
+# ============================================================================
+# 7. ACEPTAR UNA SOLICITUD  (Proceso 2)  -  POST /solicitudes/{id}/entrega
+# ============================================================================
+
+### 67. Error: la beneficiaria no acepta solicitudes
+# @name aceptarComoBeneficiaria
+# Esperado: 403 Forbidden
+POST {{api}}/solicitudes/{{crearSolicitudB.response.body.id_solicitud}}/entrega
+Authorization: Bearer {{tokenBeneficiaria}}
+
+### 68. Error: sin token
+# @name aceptarSinToken
+# Esperado: 401 Unauthorized
+POST {{api}}/solicitudes/{{crearSolicitudB.response.body.id_solicitud}}/entrega
+
+### 69. Error: solicitud inexistente
+# @name aceptarInexistente
+# Esperado: 404 Not Found
+POST {{api}}/solicitudes/999999/entrega
+Authorization: Bearer {{tokenDonante}}
+
+### 70. Error: la solicitud A ya fue cancelada
+# @name aceptarCancelada
+# Esperado: 409 Conflict
+POST {{api}}/solicitudes/{{crearSolicitudA.response.body.id_solicitud}}/entrega
+Authorization: Bearer {{tokenDonante}}
+
+### 71. Aceptar la solicitud B (el donante propietario)
+# @name aceptarSolicitud
+# Esperado: 201 Created
+# Aceptar CREA la entrega (por eso la ruta es el subrecurso /entrega). La
+# solicitud pasa a ACEPTADA, las demás de esa donación a RECHAZADA y la
+# donación a ASIGNADA. 201 + Location hacia /entregas/{id}.
+POST {{api}}/solicitudes/{{crearSolicitudB.response.body.id_solicitud}}/entrega
+Authorization: Bearer {{tokenDonante}}
+
+### 72. Error: la solicitud ya no está pendiente
+# @name aceptarOtraVez
+# Esperado: 409 Conflict
+POST {{api}}/solicitudes/{{crearSolicitudB.response.body.id_solicitud}}/entrega
+Authorization: Bearer {{tokenDonante}}
+
+###
+# ============================================================================
+# 8. ENTREGAS  (Proceso 5: coordinar)
+# ============================================================================
+
+### 73. Listar entregas como beneficiaria
+# @name listarEntregasBeneficiaria
+# Esperado: 200 OK
+GET {{api}}/entregas
+Authorization: Bearer {{tokenBeneficiaria}}
+
+### 74. Listar entregas como donante
+# @name listarEntregasDonante
+# Esperado: 200 OK
+GET {{api}}/entregas
+Authorization: Bearer {{tokenDonante}}
+
+### 75. Listar entregas como administrador (todas)
+# @name listarEntregasAdmin
+# Esperado: 200 OK
+GET {{api}}/entregas?ordering=-id_entrega
+Authorization: Bearer {{tokenAdmin}}
+
+### 76. Error: las lecturas requieren token
+# @name entregasSinToken
+# Esperado: 401 Unauthorized
+GET {{api}}/entregas
+
+### 77. Obtener la entrega recién creada (donante)
+# @name obtenerEntrega
+# Esperado: 200 OK
+GET {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenDonante}}
+
+### 78. Error: la entrega de otra organización responde 404
+# @name entregaDeOtraOrganizacion
+# Esperado: 404 Not Found
+GET {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria2}}
+
+### 79. Error: entrega inexistente
+# @name entregaInexistente
+# Esperado: 404 Not Found
+GET {{api}}/entregas/999999
+Authorization: Bearer {{tokenAdmin}}
+
+### 80. Coordinar la entrega (beneficiaria)
+# @name coordinarEntrega
+# Esperado: 200 OK
+# PATCH parcial: solo cambia lo que se envía.
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "fecha_acordada": "{{$datetime iso8601 3 d}}",
+  "lugar": "Bodega central",
+  "observaciones": "Llevar canastas"
+}
+
+### 81. Coordinar solo el lugar (donante)
+# @name coordinarComoDonante
+# Esperado: 200 OK
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "lugar": "Muelle de carga"
+}
+
+### 82. Error: sin campos de coordinación
+# @name coordinarVacio
+# Esperado: 400 Bad Request
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{}
+
+### 83. Error: fecha con formato inválido
+# @name coordinarFechaInvalida
+# Esperado: 400 Bad Request
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "fecha_acordada": "pronto"
+}
+
+### 84. Error: fecha acordada en el pasado (regla de negocio)
+# @name coordinarFechaPasada
+# Esperado: 422 Unprocessable Entity
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria}}
+Content-Type: application/json
+
+{
+  "fecha_acordada": "{{$datetime iso8601 -1 d}}"
+}
+
+### 85. Error: organización que no participa en la entrega
+# @name coordinarDeOtraOrganizacion
+# Esperado: 403 Forbidden
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenBeneficiaria2}}
+Content-Type: application/json
+
+{
+  "lugar": "Intruso"
+}
+
+### 86. Error: el administrador no coordina entregas
+# @name coordinarComoAdmin
+# Esperado: 403 Forbidden
+PATCH {{api}}/entregas/{{aceptarSolicitud.response.body.id_entrega}}
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "lugar": "X"
+}
+
+### 87. Error: entrega ya finalizada
+# @name coordinarFinalizada
+# Esperado: 409 Conflict
+# Usa la entrega FINALIZADA del seed (ajuste idEntregaFinalizada si cambia).
+PATCH {{api}}/entregas/{{idEntregaFinalizada}}
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{
+  "lugar": "Otro lugar"
+}
+
+### 88. Error: las entregas no se crean con POST (las genera el Proceso 2)
+# @name crearEntregaPorPost
+# Esperado: 405 Method Not Allowed
+POST {{api}}/entregas
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{}
+
+###
+# ============================================================================
+# 9. ERRORES GENERALES
+# ============================================================================
+
+### 89. Error: ruta inexistente (Problem Details, sin traza)
+# @name rutaInexistente
+# Esperado: 404 Not Found
+GET {{api}}/esta-ruta-no-existe
+
+### 90. Error: la ruta anterior con verbo ya no existe
+# @name rutaVieja
+# Esperado: 404 Not Found
+POST {{api}}/donaciones/publicar
+Authorization: Bearer {{tokenDonante}}
+Content-Type: application/json
+
+{}

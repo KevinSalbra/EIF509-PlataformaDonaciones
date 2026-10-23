@@ -575,9 +575,9 @@ def ids_esperados(**filtros):
 
 
 def test_filtrar_solicitudes_por_estado(
-    cliente,
+    cliente_admin,
 ):
-    respuesta = cliente.get(
+    respuesta = cliente_admin.get(
         url("solicitudes"),
         {"estado": "PENDIENTE"},
     )
@@ -595,9 +595,9 @@ def test_filtrar_solicitudes_por_estado(
 
 
 def test_filtrar_solicitudes_por_organizacion_beneficiaria(
-    cliente,
+    cliente_admin,
 ):
-    respuesta = cliente.get(
+    respuesta = cliente_admin.get(
         url("solicitudes"),
         {"id_organizacion": 4},
     )
@@ -615,9 +615,9 @@ def test_filtrar_solicitudes_por_organizacion_beneficiaria(
 
 
 def test_filtrar_solicitudes_por_donacion(
-    cliente,
+    cliente_admin,
 ):
-    respuesta = cliente.get(
+    respuesta = cliente_admin.get(
         url("solicitudes"),
         {"id_donacion": 2},
     )
@@ -635,9 +635,9 @@ def test_filtrar_solicitudes_por_donacion(
 
 
 def test_filtrar_solicitudes_combinando_filtros(
-    cliente,
+    cliente_admin,
 ):
-    respuesta = cliente.get(
+    respuesta = cliente_admin.get(
         url("solicitudes"),
         {
             "estado": "ACEPTADA",
@@ -676,11 +676,11 @@ def test_filtrar_solicitudes_combinando_filtros(
     ],
 )
 def test_filtros_de_solicitudes_invalidos_400(
-    cliente,
+    cliente_admin,
     parametro,
     valor,
 ):
-    respuesta = cliente.get(
+    respuesta = cliente_admin.get(
         url("solicitudes"),
         {parametro: valor},
     )

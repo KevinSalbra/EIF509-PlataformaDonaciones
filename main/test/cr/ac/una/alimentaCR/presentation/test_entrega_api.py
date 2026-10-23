@@ -88,14 +88,16 @@ def en_dias(dias):
 # GET
 # ----------------------------------------------------------------
 
-def test_listar_entregas_200(cliente):
+def test_listar_entregas_200(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(URL)
 
     assert respuesta.status_code == 200
     assert respuesta.json()["count"] >= 2
 
 
-def test_obtener_entrega_200(cliente):
+def test_obtener_entrega_200(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(f"{URL}/1")
 
     assert respuesta.status_code == 200
@@ -108,7 +110,8 @@ def test_obtener_entrega_200(cliente):
     assert cuerpo["confirmacion_donante"] is False
 
 
-def test_obtener_entrega_inexistente_404(cliente):
+def test_obtener_entrega_inexistente_404(cliente, usuario_administrador):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.get(
         f"{URL}/999999"
     )
@@ -119,7 +122,9 @@ def test_obtener_entrega_inexistente_404(cliente):
 
 def test_no_se_puede_crear_una_entrega_por_post_405(
     cliente,
+    usuario_administrador,
 ):
+    autenticar_cliente(cliente, usuario_administrador)
     respuesta = cliente.post(
         URL,
         {},
@@ -432,7 +437,7 @@ def test_aceptar_solicitud_201_con_location_hacia_la_entrega(
     )
 
     respuesta = cliente.post(
-        "/api/v1/solicitudes/1/aceptar",
+        "/api/v1/solicitudes/1/entrega",
         {},
         format="json",
     )

@@ -18,19 +18,26 @@ _cliente_mongo = None
 
 def obtener_cliente_mongo():
     """
-    Retorna una instancia unica (singleton) del cliente de MongoDB,
-    reutilizando la conexion entre llamadas.
+    Retorna una instancia unica del cliente MongoDB.
+
+    En produccion utiliza MONGODB_URI (MongoDB Atlas).
+    En desarrollo utiliza las variables de Docker Compose.
     """
     global _cliente_mongo
 
     if _cliente_mongo is None:
-        _cliente_mongo = MongoClient(
-            host=config("MONGO_HOST", default="localhost"),
-            port=config("MONGO_PORT", default=27017, cast=int),
-            username=config("MONGO_ROOT_USERNAME"),
-            password=config("MONGO_ROOT_PASSWORD"),
-            authSource="admin",
-        )
+        mongodb_uri = config("MONGODB_URI", default="")
+
+        if mongodb_uri:
+            _cliente_mongo = MongoClient(mongodb_uri)
+        else:
+            _cliente_mongo = MongoClient(
+                host=config("MONGO_HOST", default="localhost"),
+                port=config("MONGO_PORT", default=27017, cast=int),
+                username=config("MONGO_ROOT_USERNAME"),
+                password=config("MONGO_ROOT_PASSWORD"),
+                authSource="admin",
+            )
 
     return _cliente_mongo
 

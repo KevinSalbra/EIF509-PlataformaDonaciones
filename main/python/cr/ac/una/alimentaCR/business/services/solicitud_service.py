@@ -241,6 +241,7 @@ class SolicitudService:
         id_donacion=None,
         orden=None,
         como_dto=False, 
+        visible_para_organizacion=None
     ):
         """
         Devuelve un QuerySet filtrado con Specifications y ordenado.
@@ -254,9 +255,14 @@ class SolicitudService:
         if id_donacion is not None:
             filtros.append(SolicitudDeDonacionSpecification(id_donacion))
 
-        consulta = combinar(filtros).aplicar(
-            self.solicitud_repository.obtener_todos()
-        )
+        if visible_para_organizacion is None:
+            base = self.solicitud_repository.obtener_todos()
+        else:
+            base = self.solicitud_repository.visibles_para_organizacion(
+                visible_para_organizacion
+            )
+
+        consulta = combinar(filtros).aplicar(base)
         return consulta.order_by(*(orden or ["id_solicitud"]), "pk")
     
     def listar_solicitudes_paginadas(
@@ -267,6 +273,7 @@ class SolicitudService:
         id_organizacion=None,
         id_donacion=None,
         orden=None,
+        visible_para_organizacion=None,
     ):
         """
         Consulta, pagina y convierte las solicitudes a DTO.
@@ -276,6 +283,7 @@ class SolicitudService:
             id_organizacion=id_organizacion,
             id_donacion=id_donacion,
             orden=orden,
+            visible_para_organizacion=visible_para_organizacion,
         )
 
         pagina = paginador.paginate_queryset(consulta, request)
@@ -301,12 +309,29 @@ class SolicitudService:
         return solicitud
 
     def obtener_solicitud(
-        self, id_solicitud: int
+        self, id_solicitud: int, visible_para_organizacion=None
     ) -> SolicitudDTO:
         """
         Obtiene una solicitud y devuelve un DTO inmutable.
+
+        Si se indica `visible_para_organizacion` y la solicitud no le
+        corresponde, se responde como si no existiera, para no revelar
+        datos de otras organizaciones.
         """
         solicitud = self._obtener_solicitud_entidad(id_solicitud)
+
+        if (
+            visible_para_organizacion is not None
+            and visible_para_organizacion
+            not in (
+                solicitud.organizacion_beneficiaria_id,
+                solicitud.donacion.organizacion_donante_id,
+            )
+        ):
+            raise SolicitudNoExisteError(
+                f"No existe una solicitud con id {id_solicitud}."
+            )
+
         return self._convertir_solicitud_a_dto(solicitud)
 
     def crear_solicitud(

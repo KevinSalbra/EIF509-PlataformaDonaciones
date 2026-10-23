@@ -1,0 +1,26 @@
+{% extends "panel/base.html" %}
+{% block titulo %}Categorías{% endblock %}
+{% block contenido %}
+<div class="acciones">
+  <h1>Categorías</h1>
+  <a class="btn" href="{% url 'panel_categoria_crear' %}">Nueva categoría</a>
+</div>
+<div class="tabla-contenedor">
+  <table>
+    <thead><tr><th>Nombre</th><th>Descripción</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    {% for categoria in pagina %}
+      <tr>
+        <td>{{ categoria.nombre }}</td>
+        <td>{{ categoria.descripcion|default:"—" }}</td>
+        <td><span class="etiqueta">{{ categoria.get_estado_display }}</span></td>
+        <td><a href="{% url 'panel_categoria_editar' categoria.id_categoria %}">Editar</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="vacio">No hay categorías registradas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include "panel/_paginacion.html" %}
+{% endblock %}
