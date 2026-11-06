@@ -33,6 +33,13 @@ class CoordinarEntregaRequestSerializer(serializers.Serializer):
         allow_null=True,
     )
 
+    # Bloqueo optimista: version de la entrega que leyo el cliente. Es
+    # opcional; si se envia y ya no coincide, la API responde 409.
+    version = serializers.IntegerField(
+        required=False,
+        min_value=0,
+    )
+
     def validate(self, datos):
         if not any(
             campo in datos
@@ -74,3 +81,10 @@ class EntregaResponseSerializer(serializers.Serializer):
     confirmacion_beneficiario = serializers.BooleanField()
 
     estado = serializers.CharField()
+
+    version = serializers.IntegerField(
+        help_text=(
+            "Version del registro (bloqueo optimista). Envielo en el "
+            "PATCH para detectar modificaciones simultaneas."
+        )
+    )

@@ -10,3 +10,4 @@ class EntregaDTO:
     confirmacion_donante: bool
     confirmacion_beneficiario: bool
     estado: str
+    version: int = 0
