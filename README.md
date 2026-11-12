@@ -669,7 +669,7 @@ Estas verificaciones complementan las pruebas automatizadas del proyecto.
   registros salen a la salida estándar como JSON (una línea por evento) con eventos
   de seguridad en el logger `seguridad`: `login_fallido`, `acceso_denegado`,
   `conflicto_concurrencia` y `solicitudes_limitadas`. Nunca incluyen contraseñas ni tokens.
-- **Pipeline CI/CD:** `.github/workflows/ci.yml`. `verificar` (pruebas + cobertura
+- - **Pipeline CI/CD:** `.github/workflows/ci.yml`. `verificar` (pruebas + cobertura
   ≥ 70 % en negocio) corre en cada push y pull request; `desplegar` solo corre en
   `main` si `verificar` pasó y llama al *deploy hook* de Render guardado en
   *GitHub Secrets* (`DEPLOY_HOOK_API`, opcional `DEPLOY_HOOK_SPA`).
