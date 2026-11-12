@@ -304,7 +304,7 @@ V<numero>__<descripcion>.sql
 Por ejemplo:
 
 ```text
-V1__crear_esquema_relacional.sql
+V1__crear_esquema.sql
 V2__insertar_datos_prueba.sql
 ```
 
@@ -668,7 +668,9 @@ EIF509-PlataformaDonaciones/
 │   ├── adr/
 │   ├── api-rest/
 │   ├── arquitectura/
+│   ├── despliegue/
 │   ├── modelo-datos/
+│   ├── Documento-tecnico.md
 │   └── Propuesta-Dominio.md
 │
 ├── main/
@@ -705,10 +707,12 @@ Las decisiones arquitectónicas relevantes se documentan mediante **Architecture
 |---|---|
 | [ADR-001](docs/adr/ADR-001-seleccion-stack-backend.md) | Selección de Python y Django REST Framework como stack backend. |
 | [ADR-002](docs/adr/ADR-002-persistencia-poliglota-postgresql-mongodb.md) | Uso de persistencia políglota con PostgreSQL y MongoDB. |
+| [ADR-003](docs/adr/ADR-003-patrones-de-diseno.md) | Patrones de diseño aplicados en la arquitectura del sistema. |
+| [ADR-004](docs/adr/ADR-004-dominio-y-alcance-alimentacr.md) | Definición del dominio y alcance funcional de AlimentaCR. |
+| [ADR-005](docs/adr/ADR-005-estrategia-autenticacion.md) | Estrategia de autenticación y autorización para la API y el panel MVC. |
+| [ADR-006](docs/adr/ADR-006-plataforma-y-estrategia-de-despliegue.md) | Plataforma y estrategia de despliegue del sistema. |
 
-El ADR-001 explica la selección del stack tecnológico, sus alternativas y consecuencias.
-
-El ADR-002 justifica la separación entre la información transaccional del dominio y la bitácora documental de eventos.
+Cada ADR documenta el contexto de la decisión, la alternativa seleccionada, las alternativas consideradas y sus consecuencias.
 
 ---
 
@@ -718,13 +722,16 @@ La documentación complementaria se encuentra en la carpeta `docs/`.
 
 | Documento o carpeta | Contenido |
 |---|---|
+| [Documento técnico](docs/Documento-tecnico.md) | Síntesis de arquitectura, seguridad, datos, despliegue, pruebas, limitaciones y lecciones aprendidas. |
 | [Propuesta de dominio](docs/Propuesta-Dominio.md) | Descripción del negocio, actores, entidades, procesos y reglas. |
+| [Modelo C4](docs/arquitectura/modelo-c4.md) | Diagramas de contexto, contenedores y componentes del sistema. |
 | [Decisiones de arquitectura](docs/adr/) | ADR de las decisiones técnicas del proyecto. |
 | [Arquitectura](docs/arquitectura/) | Diagramas y documentación arquitectónica. |
 | [Modelo de datos](docs/modelo-datos/) | Modelos relacional y documental. |
 | [API REST](docs/api-rest/) | Documentación de endpoints y funcionalidades REST. |
+| [Despliegue](docs/despliegue/) | Configuración, pruebas y documentación del despliegue en producción. |
 
-La documentación específica del Laboratorio 6 incluirá la arquitectura desplegada, configuración de servicios, variables de entorno, funcionamiento de Flyway, pruebas de producción y diagrama de despliegue.
+El [documento técnico](docs/Documento-tecnico.md) funciona como punto de entrada para comprender la solución y enlaza los documentos especializados de cada área.
 
 ---
 
