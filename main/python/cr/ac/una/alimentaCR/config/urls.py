@@ -2,16 +2,22 @@
 URL configuration for config project.
 """
 
-from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
 )
 
+from cr.ac.una.alimentaCR.presentation.views import VistaHealth
+
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # A02: se retiro /admin/ (django.contrib.admin). El esquema lo gestiona
+    # Flyway, no hay tablas de auth de Django y el panel propio (/panel/)
+    # cubre la administracion; una ruta sin uso solo amplia la superficie.
+
+    # Health check para la plataforma (Render). Sin detalles internos.
+    path("actuator/health", VistaHealth.as_view(), name="actuator_health"),
 
     path(
         "api/schema/",
