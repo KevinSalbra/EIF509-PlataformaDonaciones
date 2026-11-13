@@ -1,3 +1,9 @@
+# Se define en la capa de datos (quien detecta el conflicto) y se
+# reexporta aqui para que presentacion la trate como el resto de los
+# errores del dominio.
+from ..data.exceptions import ConflictoConcurrenciaError  # noqa: F401
+
+
 class ErrorNegocio(RuntimeError):
     """
     Excepcion base para los errores de reglas de negocio de AlimentaCR.

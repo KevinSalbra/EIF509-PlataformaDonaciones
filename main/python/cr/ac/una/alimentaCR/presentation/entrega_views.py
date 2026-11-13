@@ -68,6 +68,9 @@ class EntregaDetalleView(APIView):
     GET   /api/v1/entregas/<id> -> 200 | 404
     PATCH /api/v1/entregas/<id> -> 200 | 400, 403, 404, 409, 422
 
+    409 tambien cuando otra persona modifico la entrega al mismo tiempo
+    (bloqueo optimista, campo `version`).
+
     El GET requiere autenticacion y responde 404 si la entrega no
     pertenece a la organizacion del usuario (el administrador ve todas).
 
@@ -118,11 +121,13 @@ class EntregaDetalleView(APIView):
         cambios = dict(
             entrada.validated_data
         )
+        version_esperada = cambios.pop("version", None)
 
         entrega = EntregaService().coordinar_entrega(
             id_entrega,
             request.user.id_usuario,
             cambios,
+            version_esperada=version_esperada,
         )
 
         return Response(

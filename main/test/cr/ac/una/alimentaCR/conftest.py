@@ -1,7 +1,11 @@
 import os
 import subprocess
+import uuid
+from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
+from django.utils import timezone
 from django.conf import settings
 from django.db import connections
 
@@ -125,4 +129,115 @@ def preparar_esquema_flyway(
     print(
         f"Esquema Flyway preparado correctamente en "
         f"{nombre_base_pruebas}\n"
+    )
+
+
+@pytest.fixture(autouse=True)
+def limpiar_cache():
+    """
+    Los contadores del limite de intentos de inicio de sesion viven en la
+    cache (LocMem). Se limpian para que una prueba no afecte a otra.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def escenario_entrega(db, preparar_esquema_flyway):
+    """
+    Crea, con datos propios (no depende de los de Flyway), una donacion
+    asignada con su solicitud ACEPTADA y su entrega PENDIENTE, mas los
+    representantes de ambas organizaciones.
+    """
+    from cr.ac.una.alimentaCR.data.models import (
+        Categoria,
+        Donacion,
+        Entrega,
+        Organizacion,
+        Solicitud,
+        Usuario,
+    )
+
+    sufijo = uuid.uuid4().hex[:8]
+    ahora = timezone.now()
+
+    def organizacion(tipo, nombre):
+        return Organizacion.objects.create(
+            nombre=f"{nombre} {sufijo}",
+            tipo=tipo,
+            cedula_juridica=f"E-{nombre[:3].upper()}-{sufijo}",
+            descripcion="Datos de prueba",
+            direccion="Costa Rica",
+            telefono="2222-0000",
+            estado=Organizacion.Estado.APROBADA,
+            fecha_registro=ahora,
+        )
+
+    def usuario(org, rol, nombre):
+        return Usuario.objects.create(
+            organizacion=org,
+            nombre=f"{nombre} {sufijo}",
+            correo=f"{nombre.lower()}.{sufijo}@alimenta.test",
+            contrasena="hash-de-prueba",
+            telefono="8888-0000",
+            rol=rol,
+            estado=Usuario.Estado.ACTIVO,
+            fecha_registro=ahora,
+        )
+
+    donante = organizacion(Organizacion.Tipo.DONANTE, "Donante")
+    beneficiaria = organizacion(Organizacion.Tipo.BENEFICIARIA, "Beneficiaria")
+    ajena = organizacion(Organizacion.Tipo.BENEFICIARIA, "Ajena")
+
+    categoria = Categoria.objects.create(
+        nombre=f"Categoria {sufijo}",
+        descripcion="Datos de prueba",
+        estado=Categoria.Estado.ACTIVA,
+    )
+    donacion = Donacion.objects.create(
+        organizacion_donante=donante,
+        categoria=categoria,
+        alimento=f"Arroz {sufijo}",
+        descripcion="Datos de prueba",
+        cantidad="20.00",
+        unidad_medida=Donacion.UnidadMedida.KILOGRAMO,
+        fecha_publicacion=ahora,
+        fecha_limite_retiro=timezone.localdate() + timedelta(days=10),
+        estado=Donacion.Estado.ASIGNADA,
+    )
+    solicitud = Solicitud.objects.create(
+        donacion=donacion,
+        organizacion_beneficiaria=beneficiaria,
+        fecha_solicitud=ahora,
+        estado=Solicitud.Estado.ACEPTADA,
+        observacion="Datos de prueba",
+    )
+    entrega = Entrega.objects.create(
+        solicitud=solicitud,
+        fecha_creacion=ahora,
+        confirmacion_donante=False,
+        confirmacion_beneficiario=False,
+        estado=Entrega.Estado.PENDIENTE,
+    )
+
+    return SimpleNamespace(
+        donante=donante,
+        beneficiaria=beneficiaria,
+        ajena=ajena,
+        categoria=categoria,
+        donacion=donacion,
+        solicitud=solicitud,
+        entrega=entrega,
+        usuario_donante=usuario(
+            donante, Usuario.Rol.REPRESENTANTE_DONANTE, "Donante"
+        ),
+        usuario_beneficiario=usuario(
+            beneficiaria, Usuario.Rol.REPRESENTANTE_BENEFICIARIA, "Benef"
+        ),
+        usuario_ajeno=usuario(
+            ajena, Usuario.Rol.REPRESENTANTE_BENEFICIARIA, "Ajeno"
+        ),
     )

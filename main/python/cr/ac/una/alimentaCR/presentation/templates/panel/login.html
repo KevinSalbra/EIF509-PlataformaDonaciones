@@ -2,6 +2,7 @@
 {% block titulo %}Iniciar sesión{% endblock %}
 {% block contenido %}
 <h1>Iniciar sesión</h1>
+{% if error_limite %}<p class="error" role="alert">{{ error_limite }}</p>{% endif %}
 <form class="tarjeta" method="post" novalidate>
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">

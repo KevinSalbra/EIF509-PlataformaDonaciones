@@ -651,7 +651,30 @@ Durante el Laboratorio 6 se realizaron pruebas funcionales sobre los servicios d
 Estas verificaciones complementan las pruebas automatizadas del proyecto.
 
 ---
+### Seguridad, concurrencia y observabilidad
 
+- **Auditoría de seguridad:** [AUDITORIA-SEGURIDAD.md](AUDITORIA-SEGURIDAD.md)
+  (lista de verificación de la Sesión 14 y OWASP Top 10:2025).
+- **Concurrencia (bloqueo optimista):** las entregas y las solicitudes tienen una
+  columna `version` (migración Flyway `V3`). `BaseRepository.guardar` ejecuta
+  `UPDATE ... WHERE id = ? AND version = ?`; si otra persona la modificó antes,
+  se lanza `ConflictoConcurrenciaError` y la API responde **409** con Problem Details.
+  *La entrega tiene contención real porque la organización donante y la beneficiaria
+  la coordinan a la vez (`PATCH /api/v1/entregas/{id}`), y una solicitud puede
+  aceptarse y cancelarse al mismo tiempo.* El `PATCH` acepta el campo opcional
+  `version` (la que leyó el cliente) para detectar cambios ocurridos entre la
+  lectura y el envío. Prueba: `test_bloqueo_optimista.py` y `test_concurrencia_api.py`.
+- **Observabilidad:** `GET /actuator/health` responde `{"status":"UP"}` (200) o
+  `{"status":"DOWN"}` (503) según PostgreSQL y MongoDB, sin detalles internos. Los
+  registros salen a la salida estándar como JSON (una línea por evento) con eventos
+  de seguridad en el logger `seguridad`: `login_fallido`, `acceso_denegado`,
+  `conflicto_concurrencia` y `solicitudes_limitadas`. Nunca incluyen contraseñas ni tokens.
+- **Pipeline CI/CD:** `.github/workflows/ci.yml`. `verificar` (pruebas + cobertura
+  ≥ 70 % en negocio) corre en cada push y pull request; `desplegar` solo corre en
+  `main` si `verificar` pasó y llama al *deploy hook* de Render guardado en
+  *GitHub Secrets* (`DEPLOY_HOOK_API`, opcional `DEPLOY_HOOK_SPA`).
+  Configuración manual necesaria: [docs/despliegue/lab7.md](docs/despliegue/lab7.md).
+  
 ## 13. Estructura del proyecto
 
 La estructura general del repositorio es:

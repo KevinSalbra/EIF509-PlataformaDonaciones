@@ -100,6 +100,7 @@ class SolicitudService:
             confirmacion_donante=entrega.confirmacion_donante,
             confirmacion_beneficiario=entrega.confirmacion_beneficiario,
             estado=entrega.estado,
+            version=entrega.version,  # Lab 7: bloqueo optimista
         )
     
     def _convertir_solicitud_a_dto(

@@ -47,6 +47,10 @@ class Entrega(models.Model):
         choices=Estado.choices
     )
 
+    # Bloqueo optimista (Flyway V3). Lo incrementa BaseRepository.guardar
+    # en cada UPDATE; no se asigna a mano.
+    version = models.BigIntegerField(default=0)
+
     class Meta:
         managed = False
         db_table = "entrega"
