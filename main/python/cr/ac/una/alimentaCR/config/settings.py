@@ -273,9 +273,28 @@ LOGGING = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "AlimentaCR API",
     "DESCRIPTION": (
-        "API REST para la gestion de donaciones "
-        "de alimentos entre organizaciones."
+        "API REST para la gestión de donaciones de alimentos entre "
+        "organizaciones.\n\n"
+        "**Cómo probarla:** inicie sesión en `POST /api/v1/auth/login`, "
+        "copie el `access_token`, pulse **Authorize** y péguelo (sin la "
+        "palabra Bearer).\n\n"
+        "**Errores:** todas las respuestas de error usan Problem Details "
+        "(`application/problem+json`). Un `409` indica un conflicto de "
+        "negocio o de concurrencia: otra persona modificó el registro; "
+        "recargue y reintente."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Agrupa por recurso (auth, categorias, donaciones...) en lugar de
+    # dejar todo bajo la etiqueta "api".
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+        "docExpansion": "none",
+        "filter": True,
+        "tagsSorter": "alpha",
+        "operationsSorter": "alpha",
+    },
 }
