@@ -15,7 +15,7 @@
         <td>{{ organizacion.get_tipo_display }}</td>
         <td>{{ organizacion.cedula_juridica }}</td>
         <td>{{ organizacion.telefono }}</td>
-        <td><span class="etiqueta">{{ organizacion.get_estado_display }}</span></td>
+        <td><span class="etiqueta estado-{{ organizacion.estado|lower }}">{{ organizacion.get_estado_display }}</span></td>
         <td><a href="{% url 'panel_organizacion_editar' organizacion.id_organizacion %}">Editar</a></td>
       </tr>
     {% empty %}

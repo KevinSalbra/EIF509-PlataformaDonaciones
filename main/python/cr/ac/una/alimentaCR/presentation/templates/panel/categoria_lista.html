@@ -13,7 +13,7 @@
       <tr>
         <td>{{ categoria.nombre }}</td>
         <td>{{ categoria.descripcion|default:"—" }}</td>
-        <td><span class="etiqueta">{{ categoria.get_estado_display }}</span></td>
+        <td><span class="etiqueta estado-{{ categoria.estado|lower }}">{{ categoria.get_estado_display }}</span></td>
         <td><a href="{% url 'panel_categoria_editar' categoria.id_categoria %}">Editar</a></td>
       </tr>
     {% empty %}
