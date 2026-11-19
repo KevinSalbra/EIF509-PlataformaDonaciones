@@ -3,6 +3,7 @@ from django.utils import timezone
 from ...data.models import Entrega
 from ...data.repositories import EntregaRepository, UsuarioRepository
 from ..exceptions import (
+    ConflictoConcurrenciaError,
     EntregaNoExisteError,
     EntregaNoPendienteError,
     FechaAcordadaInvalidaError,
@@ -68,11 +69,22 @@ class EntregaService:
         return entrega
 
     def coordinar_entrega(
-        self, id_entrega: int, id_usuario: int, cambios: dict
+        self,
+        id_entrega: int,
+        id_usuario: int,
+        cambios: dict,
+        version_esperada: int = None,
     ) -> Entrega:
         """
         Actualiza solo los campos de coordinacion presentes en `cambios`
         (fecha_acordada, lugar, observaciones).
+
+        Control de concurrencia (bloqueo optimista): la donante y la
+        beneficiaria pueden coordinar la misma entrega al mismo tiempo.
+        - Si el cliente envia `version_esperada` y ya no coincide con la
+          version actual, la entrega cambio desde que la leyo: 409.
+        - Aunque no la envie, el guardado solo se aplica si la fila no
+          cambio entre la lectura y la escritura (ver BaseRepository).
         """
         entrega = self.obtener_entrega(id_entrega)
 
@@ -88,6 +100,13 @@ class EntregaService:
             raise EntregaNoPendienteError(
                 f"La entrega {id_entrega} no esta pendiente "
                 f"(estado actual: {entrega.estado})."
+            )
+
+        if version_esperada is not None and version_esperada != entrega.version:
+            raise ConflictoConcurrenciaError(
+                f"La entrega {id_entrega} fue modificada por otra persona "
+                f"(version actual {entrega.version}, version enviada "
+                f"{version_esperada}). Recargue los datos e intente de nuevo."
             )
 
         fecha_acordada = cambios.get("fecha_acordada")

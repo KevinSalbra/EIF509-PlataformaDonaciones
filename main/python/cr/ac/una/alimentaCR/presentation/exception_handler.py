@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from cr.ac.una.alimentaCR.business import exceptions as err
+from cr.ac.una.alimentaCR.presentation import eventos_seguridad
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ MAPA_EXCEPCIONES = {
     err.NombreCategoriaDuplicadoError: status.HTTP_409_CONFLICT,
     err.SolicitudDuplicadaError: status.HTTP_409_CONFLICT,
     err.EntregaNoPendienteError: status.HTTP_409_CONFLICT,
+    err.ConflictoConcurrenciaError: status.HTTP_409_CONFLICT,
     err.UsuarioNoAutorizadoError: status.HTTP_403_FORBIDDEN,
     err.OrganizacionNoAutorizadaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     err.CategoriaInactivaError: status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -58,6 +60,16 @@ def _problema(codigo, detalle, request, respuesta=None, **extra):
     return respuesta
 
 
+def _registrar_evento_seguridad(request, codigo, exc):
+    """Deja constancia de accesos denegados, conflictos y limites (A09)."""
+    if codigo in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN):
+        eventos_seguridad.acceso_denegado(request, codigo)
+    elif isinstance(exc, err.ConflictoConcurrenciaError):
+        eventos_seguridad.conflicto_concurrencia(request, str(exc))
+    elif codigo == status.HTTP_429_TOO_MANY_REQUESTS:
+        eventos_seguridad.solicitudes_limitadas(request)
+
+
 def manejador_global(exc, context):
     request = context["request"]
 
@@ -73,6 +85,7 @@ def manejador_global(exc, context):
     # 2. Excepciones de negocio
     for tipo, codigo in MAPA_EXCEPCIONES.items():
         if isinstance(exc, tipo):
+            _registrar_evento_seguridad(request, codigo, exc)
             return _problema(codigo, str(exc), request)
 
     # 3. Excepciones propias de DRF/Django (404, 401, 403, 405, ...)
@@ -81,6 +94,7 @@ def manejador_global(exc, context):
         detalle = ""
         if isinstance(respuesta.data, dict):
             detalle = str(respuesta.data.get("detail", ""))
+        _registrar_evento_seguridad(request, respuesta.status_code, exc)
         return _problema(respuesta.status_code, detalle, request, respuesta)
 
     # 4. Cualquier otro error: se registra en el log
@@ -91,7 +105,6 @@ def manejador_global(exc, context):
         request,
     )
 
-    
 
 # --- Errores fuera de DRF: rutas inexistentes y fallos no capturados ---
 #

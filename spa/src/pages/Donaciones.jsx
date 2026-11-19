@@ -81,7 +81,7 @@ export default function Donaciones() {
                     <td>{d.alimento}{d.descripcion && <div className="ayuda">{d.descripcion}</div>}</td>
                     <td>{Number(d.cantidad)} {UNIDADES[d.unidad_medida] || d.unidad_medida}</td>
                     <td>{d.fecha_limite_retiro}</td>
-                    <td><span className="etiqueta">{d.estado}</span></td>
+                    <td><span className={`etiqueta estado-${d.estado.toLowerCase()}`}>{d.estado}</span></td>
                   </tr>
                 ))}
               </tbody>

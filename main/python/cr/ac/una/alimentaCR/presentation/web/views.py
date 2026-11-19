@@ -8,6 +8,8 @@ CSRF la aplica CsrfViewMiddleware y cada plantilla incluye
 {% csrf_token %}.
 """
 from django.contrib import messages
+from django.conf import settings
+from django.core.cache import cache
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import Http404
 from django.shortcuts import redirect, render
@@ -21,6 +23,7 @@ from cr.ac.una.alimentaCR.business.exceptions import (
     OrganizacionNoExisteError,
 )
 from cr.ac.una.alimentaCR.data.models import Usuario
+from cr.ac.una.alimentaCR.presentation import eventos_seguridad
 from cr.ac.una.alimentaCR.business.services import (
     CategoriaService,
     OrganizacionService,
@@ -61,10 +64,39 @@ def _destino_seguro(request, valor, por_defecto):
 
 # ---------------------------------------------------------------- sesion
 
+def _login_limitado(request):
+    """
+    A07: limita los intentos de inicio de sesion del panel por IP.
+    Cuenta cada POST dentro de la ventana (LOGIN_PANEL_MAX_INTENTOS por
+    LOGIN_PANEL_VENTANA_SEGUNDOS) y, al superarla, responde 429.
+    """
+    clave = f"login_panel:{eventos_seguridad.ip_cliente(request)}"
+    cache.add(clave, 0, timeout=settings.LOGIN_PANEL_VENTANA_SEGUNDOS)
+    try:
+        intentos = cache.incr(clave)
+    except ValueError:  # la clave expiro entre add e incr
+        cache.set(clave, 1, timeout=settings.LOGIN_PANEL_VENTANA_SEGUNDOS)
+        intentos = 1
+    return intentos > settings.LOGIN_PANEL_MAX_INTENTOS
+
+
 @require_http_methods(["GET", "POST"])
 def login(request):
     if usuario_de_sesion(request) is not None:
         return redirect("panel_categorias")
+
+    if request.method == "POST" and _login_limitado(request):
+        eventos_seguridad.solicitudes_limitadas(request)
+        return render(
+            request,
+            "panel/login.html",
+            {
+                "form": LoginForm(),
+                "next": "",
+                "error_limite": "Demasiados intentos. Espere un minuto.",
+            },
+            status=429,
+        )
 
     siguiente = request.POST.get("next") or request.GET.get("next", "")
     form = LoginForm(request.POST or None)
@@ -76,6 +108,9 @@ def login(request):
         )
         if usuario is None or usuario.rol != Usuario.Rol.ADMINISTRADOR:
             # Mismo mensaje para ambos casos: no revela si el correo existe.
+            eventos_seguridad.login_fallido(
+                request, form.cleaned_data["correo"], origen="panel"
+            )
             form.add_error(None, "Credenciales inválidas.")
         else:
             iniciar_sesion(request, usuario)
