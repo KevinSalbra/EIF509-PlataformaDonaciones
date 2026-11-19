@@ -304,7 +304,7 @@ V<numero>__<descripcion>.sql
 Por ejemplo:
 
 ```text
-V1__crear_esquema.sql
+V1__crear_esquema_relacional.sql
 V2__insertar_datos_prueba.sql
 ```
 

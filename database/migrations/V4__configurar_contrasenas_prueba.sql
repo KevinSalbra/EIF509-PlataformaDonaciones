@@ -1,5 +1,5 @@
 -- =====================================================
--- V3: configurar contrasenas de las cuentas de prueba
+-- V4: configurar contrasenas de las cuentas de prueba
 --
 -- La contrasena fue entregada directamente al evaluador.
 -- En la base de datos se conserva únicamente su hash.
